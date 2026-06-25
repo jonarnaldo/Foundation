@@ -1,4 +1,47 @@
 ================================================================================
+SESSION 2 COMPLETE — Foundation Construction Finance Platform
+Date: 2026-06-25
+================================================================================
+
+## SESSION 2 WHAT WAS ACCOMPLISHED
+
+### Auth & Dev Mode
+- JWT strategy now uses HS256 with local secret in NODE_ENV !== 'production'
+- Auth guard injects mock dev user (sub: 'dev-user-001') — no Auth0 credentials needed
+- compression import fixed in main.ts
+
+### Backend additions
+- Dashboard service: getAlerts() queries approved-uninvoiced milestones → warning alerts
+- Dashboard service: getSnapshots() returns 6–14 time-series points based on interval
+- Milestones: GET /milestones?status=X endpoint for split-payment drawer
+- All TypeScript strict errors resolved; `pnpm tsc --noEmit` passes both client + server
+
+### Frontend — ProjectContext
+- Auto-fetches GET /api/projects on mount
+- Persists activeProjectId in localStorage, restores or defaults to first project
+- Project interface: added clientEmail, clientPhone
+
+### Frontend — Sidebar
+- "Foundation" brand logo
+- New Project modal (all fields: name*, clientName*, email, phone, contract value, number, start, end, description)
+- Edit Project modal — pre-fills with current project, allows changing contract value, status, dates
+- "Edit" button appears next to project selector when a project is active
+
+### Frontend — ScheduleBuilderPage
+- Add Phase modal (name*, description, estimatedBudget)
+- Delete phase button (X icon) in phase header
+- Inline phase name editing: double-click → input → blur/Enter saves, Escape cancels
+- Calls PUT /projects/:id/phases/:phaseId to persist name change
+
+### Frontend — FinancialDashboardPage
+- Export Report modal with: report type, output format (PDF/CSV), recipient (Lender/Client/Accountant), date range
+- Calls POST /projects/:id/reports, opens download URL
+
+### Commit
+- hash: 7b9bc91
+- 15 files changed, 721 insertions(+)
+
+================================================================================
 SESSION 1 COMPLETE — Foundation Construction Finance Platform
 Date: 2026-06-25
 ================================================================================
@@ -111,56 +154,48 @@ Foundation/
 - Search: full-text search on projects + transactions via TypeORM ILike
 - Settings: get/put
 
-## NEXT STEPS FOR SESSION 2
+## NEXT STEPS FOR SESSION 3
 
 Priority order for next agent:
 
-1. **Install dependencies and verify the app starts**
-   ```bash
-   ./init.sh
-   ```
+1. **Start servers and verify app loads**
+   - cd Foundation && ./init.sh (starts Docker, DB, frontend, backend)
+   - Visit localhost:5173 and verify dashboard loads with a project selected
+   - Check browser console for errors
 
-2. **Implement document upload (milestone_documents)**
-   - POST /api/milestones/:id/documents (multipart)
-   - GET /api/milestones/:id/documents
-   - Inline media dock in ScheduleBuilderPage (file picker + thumbnail)
-   - Store files locally or use cloud storage URL
+2. **Milestone inline editing**
+   - Test 4, steps 6–7: click milestone title to edit inline (Enter saves), click dollar value to edit inline
+   - Add `editingMilestoneId` + `editingMilestoneField` state to ScheduleBuilderPage
+   - On blur/Enter call PUT /milestones/:id with updated name or scheduledAmount
 
-3. **Implement real financial snapshots (TimescaleDB)**
-   - Create project_financial_snapshots entity
-   - Seed or compute time-series data
-   - Wire GET /api/projects/:id/snapshots to return actual data
-   - Chart will populate with real data
+3. **Drag-and-drop reordering (Test 4, steps 8–11)**
+   - @dnd-kit/sortable is in package.json — may need install
+   - Wrap phase milestone list in DndContext + SortableContext
+   - On drag end: call PATCH /milestones/reorder with new sortOrder array
+   - Cross-phase drop: move milestone to new phase + update phaseId
 
-4. **Implement financial alerts**
-   - Create financial_alerts entity
-   - Auto-generate alerts for: uninvoiced approved milestones, overdue draws
-   - Wire GET /api/projects/:id/alerts
+4. **Milestone delete via row action (Test 4, step 12)**
+   - Add delete button to milestone row (visible on hover, like the ignore button in BankSync)
+   - Call DELETE /milestones/:id and remove from phase.milestones
 
-5. **Implement drag-and-drop in ScheduleBuilderPage**
-   - Use @dnd-kit/sortable for milestone and phase reordering
-   - Call PATCH /api/projects/:id/phases/reorder on drop
-   - Call PATCH /api/milestones/reorder on cross-phase drop
+5. **Document upload / inline media dock (Test 7)**
+   - POST /api/milestones/:id/documents (multipart/form-data)
+   - Display uploaded files as thumbnails in milestone row
+   - Document entity already defined in database/entities/document.entity.ts
 
-6. **Implement project creation UI**
-   - Add "New Project" button + modal to Sidebar
-   - After creation, set as active project and navigate to dashboard
+6. **Project delete (Test 2, step 12)**
+   - Add "Delete Project" button in Edit Project modal
+   - Call DELETE /api/projects/:id
+   - Remove from projects list, switch to first remaining project
 
-7. **Wire ProjectContext to API**
-   - On app load, fetch GET /api/projects → populate dropdown switcher
-   - Set first project as activeProjectId if not cached in localStorage
+7. **Seed realistic data (important for test verification)**
+   - Update server/src/database/seed.ts (or create if missing)
+   - Seed: 1 project with $4.5M contract, 3 phases, 8 milestones in various statuses
+   - Include milestones in APPROVED, INVOICED, PAID states so dashboard shows real numbers
 
-8. **Implement QuickBooks write-back queue (BullMQ)**
-   - When a match is confirmed, queue a QB invoice generation job
-   - Update quickbooksSyncStatus on the transaction_match record
-
-9. **Implement OCR memo parsing**
-   - POST /api/transactions/:id trigger OCR parsing job via BullMQ
-   - Store ocrParsedText and ocrParsedKeywords on bank_transaction
-
-10. **Mark passing feature tests**
-    - For each feature verified: change "passes": false → "passes": true in feature_list.json
-    - NEVER remove or edit descriptions/steps
+8. **Mark passing feature tests**
+   - For each feature verified: change "passes": false → "passes": true in feature_list.json
+   - NEVER remove or edit descriptions/steps or add new fields beyond "passes"
 
 ## IMPORTANT NOTES
 
