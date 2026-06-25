@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '../../lib/api'
 import { SearchIcon, SunIcon, MoonIcon } from '../ui/Icons'
 import { useTheme } from '../../context/ThemeContext'
+import { useAuth } from '../../context/AuthContext'
 
 interface QBStatus {
   status: 'connected' | 'needs-reauth' | 'disconnected'
@@ -18,6 +19,7 @@ interface SearchResult {
 
 export function TopHeader() {
   const { theme, toggleTheme } = useTheme()
+  const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
@@ -123,6 +125,28 @@ export function TopHeader() {
         <span className={`w-2 h-2 rounded-full ${qbColors[qbStatus] || 'bg-gray-400'}`} aria-hidden="true" />
         <span className="hidden sm:inline">QuickBooks</span>
       </button>
+
+      {/* User avatar + logout */}
+      {user && (
+        <div className="flex items-center gap-2">
+          <div
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#E5E5E5] dark:border-[#404040] bg-white dark:bg-[#1A1A1A]"
+            aria-label={`Signed in as ${user.name}`}
+          >
+            <span className="w-6 h-6 rounded-full bg-[#CC785C] text-white text-xs font-semibold flex items-center justify-center" aria-hidden="true">
+              {user.name.charAt(0).toUpperCase()}
+            </span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:inline">{user.name}</span>
+          </div>
+          <button
+            onClick={() => { logout(); navigate('/login') }}
+            className="text-sm px-3 py-1.5 rounded-lg border border-[#E5E5E5] dark:border-[#404040] hover:bg-[#F5F5F5] dark:hover:bg-[#2A2A2A] transition-colors duration-200 text-gray-600 dark:text-gray-400"
+            aria-label="Sign out"
+          >
+            Sign out
+          </button>
+        </div>
+      )}
     </header>
   )
 }

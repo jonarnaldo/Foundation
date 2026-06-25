@@ -1,7 +1,7 @@
 [
   {
     "category": "functional",
-    "description": "User authentication via Auth0 with MFA — verifies login, MFA prompt, session persistence, and logout flow",
+    "description": "User authentication via Auth0 with MFA \u2014 verifies login, MFA prompt, session persistence, and logout flow",
     "steps": [
       "Step 1: Navigate to the app root URL",
       "Step 2: Verify redirect to Auth0 login page",
@@ -16,11 +16,11 @@
       "Step 11: Attempt to navigate to a protected route and verify redirect to login",
       "Step 12: Attempt login with invalid credentials and verify an error message is shown"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
-    "description": "Project creation and management — verifies creating, editing, and viewing construction projects with all required fields",
+    "description": "Project creation and management \u2014 verifies creating, editing, and viewing construction projects with all required fields",
     "steps": [
       "Step 1: Navigate to the left sidebar and click the Project Dropdown Switcher",
       "Step 2: Click 'New Project' to open the project creation flow",
@@ -39,7 +39,7 @@
   },
   {
     "category": "functional",
-    "description": "Project Schedule Builder — phase accordion cards with expand/collapse and full phase CRUD operations",
+    "description": "Project Schedule Builder \u2014 phase accordion cards with expand/collapse and full phase CRUD operations",
     "steps": [
       "Step 1: Navigate to the Project & Schedule Builder page",
       "Step 2: Verify all existing phases are displayed as expanded accordion cards on first load",
@@ -57,7 +57,7 @@
   },
   {
     "category": "functional",
-    "description": "Milestone management — adding, editing, reordering within a phase, and cross-phase drag-and-drop reassignment",
+    "description": "Milestone management \u2014 adding, editing, reordering within a phase, and cross-phase drag-and-drop reassignment",
     "steps": [
       "Step 1: Navigate to the Project & Schedule Builder page",
       "Step 2: Click the plus button (top-right) to open the Add Milestone modal",
@@ -96,7 +96,7 @@
   },
   {
     "category": "functional",
-    "description": "Milestone criteria management — adding criteria, marking as met, and auto-triggering status progression",
+    "description": "Milestone criteria management \u2014 adding criteria, marking as met, and auto-triggering status progression",
     "steps": [
       "Step 1: Open the Add Milestone modal and add three completion criteria for a new milestone",
       "Step 2: Save the milestone and verify all three criteria are visible in the milestone's expanded row",
@@ -112,7 +112,7 @@
   },
   {
     "category": "functional",
-    "description": "Document attachment vault — uploading inspection PDFs and site photos to milestones and viewing them",
+    "description": "Document attachment vault \u2014 uploading inspection PDFs and site photos to milestones and viewing them",
     "steps": [
       "Step 1: Navigate to the Project & Schedule Builder and locate a milestone row",
       "Step 2: Click the Inline Media Dock thumbnail slot at the end of the milestone row",
@@ -128,7 +128,7 @@
   },
   {
     "category": "functional",
-    "description": "Financial Dashboard — four metric cards display correct real-time values and update on transaction/milestone changes",
+    "description": "Financial Dashboard \u2014 four metric cards display correct real-time values and update on transaction/milestone changes",
     "steps": [
       "Step 1: Navigate to the Financial Dashboard of a project with at least one invoiced and one paid milestone",
       "Step 2: Verify the 'Total Contract Value' card shows the project's contract_value field",
@@ -147,7 +147,7 @@
   },
   {
     "category": "functional",
-    "description": "Cash Flow Burn-Down Chart — dual-line interactive chart with date range selector and tooltip on hover",
+    "description": "Cash Flow Burn-Down Chart \u2014 dual-line interactive chart with date range selector and tooltip on hover",
     "steps": [
       "Step 1: Navigate to the Financial Dashboard and locate the Cash Flow Burn-Down Chart",
       "Step 2: Verify the chart renders two lines: green (cumulative income) and red (cumulative expenses)",
@@ -166,7 +166,7 @@
   },
   {
     "category": "functional",
-    "description": "Dynamic Action-Item Banner and financial alerts — proactive notifications for un-invoiced milestones and overdue draws",
+    "description": "Dynamic Action-Item Banner and financial alerts \u2014 proactive notifications for un-invoiced milestones and overdue draws",
     "steps": [
       "Step 1: Navigate to the Financial Dashboard with at least one approved-but-uninvoiced milestone",
       "Step 2: Verify the Dynamic Action-Item Banner appears below the metric cards",
@@ -185,7 +185,7 @@
   },
   {
     "category": "functional",
-    "description": "Financial report export — generating and downloading PDF and CSV reports for lenders, clients, and accountants",
+    "description": "Financial report export \u2014 generating and downloading PDF and CSV reports for lenders, clients, and accountants",
     "steps": [
       "Step 1: Navigate to the Financial Dashboard and click 'Export Report'",
       "Step 2: Verify a report configuration dialog appears with options for report type, date range, output format, and recipient label",
@@ -204,14 +204,14 @@
   },
   {
     "category": "functional",
-    "description": "Plaid bank account connection — linking a bank account, viewing connected accounts, and manual transaction sync",
+    "description": "Plaid bank account connection \u2014 linking a bank account, viewing connected accounts, and manual transaction sync",
     "steps": [
-      "Step 1: Navigate to Settings → Integrations",
+      "Step 1: Navigate to Settings \u2192 Integrations",
       "Step 2: Click 'Connect Bank Account' to initiate the Plaid Link modal",
       "Step 3: Verify the Plaid Link UI appears (search for institution, authenticate)",
       "Step 4: Simulate completing the Plaid Link flow (mock public token exchange)",
       "Step 5: Call POST /api/plaid/exchange-token with the public token and verify a bank_accounts record is created",
-      "Step 6: Navigate to Settings → Integrations and verify the newly connected bank appears in the connected accounts list with its last-synced timestamp",
+      "Step 6: Navigate to Settings \u2192 Integrations and verify the newly connected bank appears in the connected accounts list with its last-synced timestamp",
       "Step 7: Click 'Sync Now' next to the connected bank and verify a manual Plaid pull is triggered",
       "Step 8: Call POST /api/bank-accounts/:bankAccountId/sync and verify the response confirms the sync job was queued",
       "Step 9: Navigate to the Bank Sync page and verify new transactions appear in the unmatched feed",
@@ -223,7 +223,7 @@
   },
   {
     "category": "functional",
-    "description": "Transaction ledger and AI-suggested matching — unmatched bank feed, transaction selection, and ranked milestone candidates",
+    "description": "Transaction ledger and AI-suggested matching \u2014 unmatched bank feed, transaction selection, and ranked milestone candidates",
     "steps": [
       "Step 1: Navigate to the Bank Sync Transaction Matcher page",
       "Step 2: Verify the Left Split-Pane shows a vertical feed of cleared deposits sorted by posted_date descending",
@@ -243,7 +243,7 @@
   },
   {
     "category": "functional",
-    "description": "Link & Sync reconciliation — confirming a match, QuickBooks write-back, milestone status update, and undo match",
+    "description": "Link & Sync reconciliation \u2014 confirming a match, QuickBooks write-back, milestone status update, and undo match",
     "steps": [
       "Step 1: Navigate to the Bank Sync page and select an unmatched transaction",
       "Step 2: Select a suggested milestone match in the Right Split-Pane",
@@ -263,7 +263,7 @@
   },
   {
     "category": "functional",
-    "description": "Split-payment utility drawer — allocating a single transaction across multiple milestones with running balance",
+    "description": "Split-payment utility drawer \u2014 allocating a single transaction across multiple milestones with running balance",
     "steps": [
       "Step 1: Navigate to the Bank Sync page and select a large deposit that covers multiple milestone amounts",
       "Step 2: Click 'Split Payment' on the transaction row",
@@ -284,7 +284,7 @@
   },
   {
     "category": "functional",
-    "description": "Reconciliation audit trail — viewing full history of match actions, confirmations, splits, and QuickBooks events",
+    "description": "Reconciliation audit trail \u2014 viewing full history of match actions, confirmations, splits, and QuickBooks events",
     "steps": [
       "Step 1: Navigate to the Bank Sync Transaction Matcher page",
       "Step 2: Click 'View Audit Log' at the bottom of the page",
@@ -300,7 +300,7 @@
   },
   {
     "category": "functional",
-    "description": "Global search bar — searching across check numbers, project names, and client names in real-time",
+    "description": "Global search bar \u2014 searching across check numbers, project names, and client names in real-time",
     "steps": [
       "Step 1: Click the global search bar in the top header",
       "Step 2: Type a partial project name and verify real-time suggestions appear below the search bar",
@@ -316,9 +316,9 @@
   },
   {
     "category": "functional",
-    "description": "QuickBooks integration — OAuth connection, sync indicator badge, item code assignment, and Force Sync",
+    "description": "QuickBooks integration \u2014 OAuth connection, sync indicator badge, item code assignment, and Force Sync",
     "steps": [
-      "Step 1: Navigate to Settings → Integrations",
+      "Step 1: Navigate to Settings \u2192 Integrations",
       "Step 2: Verify QuickBooks connection status is shown (connected/needs-reauth/disconnected)",
       "Step 3: Click 'Connect QuickBooks' to initiate the OAuth flow",
       "Step 4: Simulate OAuth redirect and callback with a valid authorization code",
@@ -329,14 +329,14 @@
       "Step 9: Select an item code and verify it is saved to the milestone's quickbooks_item_code field",
       "Step 10: Simulate a failed sync (set quickbooks_sync_status to 'failed' on a transaction_match) and verify the top-header badge turns amber",
       "Step 11: Click the amber badge and verify it triggers re-authentication without navigating away",
-      "Step 12: Navigate to Settings → Integrations and click 'Force Sync'",
+      "Step 12: Navigate to Settings \u2192 Integrations and click 'Force Sync'",
       "Step 13: Call POST /api/integrations/quickbooks/sync and verify pending/failed records are queued for write-back"
     ],
     "passes": false
   },
   {
     "category": "style",
-    "description": "Design system consistency — verifies color palette, typography, button variants, card styling, and animation timings across all pages",
+    "description": "Design system consistency \u2014 verifies color palette, typography, button variants, card styling, and animation timings across all pages",
     "steps": [
       "Step 1: Navigate to each main page (Schedule Builder, Financial Dashboard, Bank Sync, Settings)",
       "Step 2: Verify the primary accent color (#CC785C orange/amber) is used for primary action buttons and active states",
@@ -353,7 +353,7 @@
   },
   {
     "category": "style",
-    "description": "Responsive layout and mobile accessibility — verifies mobile-first design, collapsible sidebar, touch targets, and PWA support",
+    "description": "Responsive layout and mobile accessibility \u2014 verifies mobile-first design, collapsible sidebar, touch targets, and PWA support",
     "steps": [
       "Step 1: Open the app on a desktop viewport (1280px+) and verify the left sidebar is visible by default",
       "Step 2: Click the collapse arrow on the sidebar and verify it hides and the main content expands to fill the space",
@@ -372,11 +372,11 @@
   },
   {
     "category": "style",
-    "description": "Accessibility compliance — keyboard navigation, screen reader support, ARIA labels, high contrast mode, and reduced motion",
+    "description": "Accessibility compliance \u2014 keyboard navigation, screen reader support, ARIA labels, high contrast mode, and reduced motion",
     "steps": [
       "Step 1: Tab through the entire app navigation using only the keyboard and verify every interactive element receives focus in logical order",
       "Step 2: Verify all buttons, toggles, and links have visible focus rings",
-      "Step 3: Use a screen reader (VoiceOver or NVDA) and navigate to the Financial Dashboard — verify metric cards are announced with their label and value",
+      "Step 3: Use a screen reader (VoiceOver or NVDA) and navigate to the Financial Dashboard \u2014 verify metric cards are announced with their label and value",
       "Step 4: Navigate to the Schedule Builder and verify milestone rows, status badges, and toggles are correctly announced by the screen reader",
       "Step 5: Verify all form inputs have associated <label> elements or aria-label attributes",
       "Step 6: Verify all icons that convey meaning have aria-label or visually hidden text",
