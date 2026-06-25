@@ -17,6 +17,11 @@ echo "================================================"
 command -v node >/dev/null 2>&1 || { echo "ERROR: Node.js is required but not installed."; exit 1; }
 command -v pnpm >/dev/null 2>&1 || { echo "pnpm not found — installing..."; npm install -g pnpm; }
 
+# ── Clear stale processes on dev ports ───────────────────────────────────────
+for PORT in $FRONTEND_PORT $BACKEND_PORT; do
+  PID=$(lsof -ti ":$PORT" 2>/dev/null) && kill "$PID" 2>/dev/null && echo "  Cleared stale process on port $PORT (PID $PID)" || true
+done
+
 # ── Frontend ──────────────────────────────────────────────────────────────────
 echo ""
 echo "[1/3] Installing frontend dependencies..."
