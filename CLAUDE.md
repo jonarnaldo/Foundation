@@ -33,6 +33,7 @@ test requires, verify it through the browser with screenshots, mark it
 
 ## Do Not
 
+- Commit or push directly to `main` — always work on a feature branch
 - Implement more than one feature per session
 - Mark a test passing without browser screenshots
 - Edit test descriptions or steps in `feature_list.json`

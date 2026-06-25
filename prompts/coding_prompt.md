@@ -42,7 +42,27 @@ There will be more sessions. Breadth is the enemy of quality here.
 
 ---
 
-### STEP 1: GET YOUR BEARINGS
+### STEP 1: CREATE A FEATURE BRANCH
+
+**Never commit directly to `main`. All work happens on a feature branch.**
+
+```bash
+# Make sure you're on main and it's clean
+git checkout main
+git status   # must be clean before branching
+
+# Create and switch to a branch named after the feature you're implementing
+# Use the format: feature/test-N-short-description
+# Example: feature/test-2-project-creation
+git checkout -b feature/test-N-short-description
+```
+
+Do not write any code until you are on a feature branch. If `git status`
+shows uncommitted changes on main, commit or stash them first.
+
+---
+
+### STEP 2: GET YOUR BEARINGS
 
 ```bash
 # Project structure
@@ -60,7 +80,7 @@ git log --oneline -10
 
 ---
 
-### STEP 2: START SERVERS
+### STEP 3: START SERVERS
 
 If `init.sh` exists, run it:
 
@@ -81,7 +101,7 @@ features until the app is confirmed running.
 
 ---
 
-### STEP 3: VERIFY PREVIOUSLY-PASSING TESTS
+### STEP 4: VERIFY PREVIOUSLY-PASSING TESTS
 
 **Mandatory before new work.**
 
@@ -102,7 +122,7 @@ Common regressions to check:
 
 ---
 
-### STEP 4: IMPLEMENT THE ONE FEATURE
+### STEP 5: IMPLEMENT THE ONE FEATURE
 
 You identified the target feature in the ⛔ block above. Now implement it.
 
@@ -118,7 +138,7 @@ Implementation order:
 
 ---
 
-### STEP 5: VERIFY THROUGH THE BROWSER (NOT CURL)
+### STEP 6: VERIFY THROUGH THE BROWSER (NOT CURL)
 
 **You must verify through the actual UI. Code that compiles is not verified.**
 
@@ -142,7 +162,7 @@ Save screenshots to `verification/test-N-step-M.png`.
 
 ---
 
-### STEP 6: UPDATE feature_list.json
+### STEP 7: UPDATE feature_list.json
 
 **Only change the `"passes"` field. Nothing else.**
 
@@ -157,7 +177,7 @@ Never:
 
 ---
 
-### STEP 7: COMMIT
+### STEP 8: COMMIT AND OPEN A PULL REQUEST
 
 ```bash
 git add -A
@@ -169,30 +189,42 @@ Steps verified:
 Screenshots: verification/test-N-*.png
 feature_list.json: test #N marked passing
 "
+
+# Push the feature branch
+git push -u origin feature/test-N-short-description
+
+# Open a pull request into main
+gh pr create \
+  --title "feat: [feature name] (test #N)" \
+  --body "Implements test #N from feature_list.json. All steps verified via browser automation. Screenshots in verification/."
 ```
+
+Do not merge the PR yourself. Leave it open for review.
 
 ---
 
-### STEP 8: UPDATE PROGRESS NOTES
+### STEP 9: UPDATE PROGRESS NOTES
 
 Update `claude-progress.txt`:
 
 - Which test you completed (number + description)
+- The feature branch name and PR link
 - Any regressions found and fixed
 - What the next session should work on (the next `"passes": false` test)
 - Current count: X/Y tests passing
 
 ---
 
-### STEP 9: END SESSION CLEANLY
+### STEP 10: END SESSION CLEANLY
 
 Before context fills up:
 
-1. All code committed
-2. claude-progress.txt updated
-3. feature_list.json updated
-4. No uncommitted changes (`git status` is clean)
-5. App still loads and runs
+1. All code committed and pushed to feature branch
+2. PR opened against main
+3. claude-progress.txt updated
+4. feature_list.json updated
+5. No uncommitted changes (`git status` is clean)
+6. App still loads and runs
 
 ---
 
