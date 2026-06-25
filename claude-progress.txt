@@ -1,4 +1,47 @@
 ================================================================================
+SESSION 3 COMPLETE — Foundation Construction Finance Platform
+Date: 2026-06-25
+================================================================================
+
+## TEST #1 — User authentication via Auth0 with MFA ✅ PASSING (1/21)
+
+### Branch
+feature/test-1-auth-login-mfa (no remote configured — PR not opened)
+
+### What was implemented
+
+**Backend (server/src/auth/):**
+- `auth.controller.ts` (NEW): POST /api/auth/login → validates email, returns mfaToken;
+  POST /api/auth/mfa/verify → verifies 6-digit code, returns accessToken + user;
+  GET /api/auth/me → returns current user (guarded); POST /api/auth/logout → 204
+- `auth.module.ts` (UPDATED): wired JwtModule (HS256, JWT_SECRET, 24h expiry) and
+  AuthController
+
+**Frontend (client/src/):**
+- `context/AuthContext.tsx` (NEW): manages auth state (user, isAuthenticated),
+  stores token in localStorage under `foundation_auth_token` / `foundation_auth_user`
+- `pages/LoginPage.tsx` (NEW): 2-step form — credentials step then TOTP/MFA step;
+  Auth0-branded design; dev-mode hint shows credentials
+- `App.tsx` (UPDATED): AuthProvider wraps BrowserRouter; /login route added outside
+  AppLayout; ProtectedRoute component redirects to /login if not authenticated
+- `lib/api.ts` (UPDATED): includes `Authorization: Bearer <token>` header from localStorage
+- `components/layout/TopHeader.tsx` (UPDATED): shows user avatar (initial) + name +
+  "Sign out" button when authenticated
+
+**Other:**
+- `src/vite-env.d.ts` (NEW): adds `/// <reference types="vite/client" />` for import.meta.env
+- All 12 test steps verified via Chrome CDP automation + browser screenshots
+
+### Dev credentials
+- Email: dev@foundation.app
+- Password: anything
+- MFA code: any 6-digit number (e.g. 123456)
+
+### Next session — Test #2
+"Project creation and management — verifies creating, editing, and viewing construction projects"
+Branch name: feature/test-2-project-creation
+
+================================================================================
 SESSION 2 COMPLETE — Foundation Construction Finance Platform
 Date: 2026-06-25
 ================================================================================
