@@ -1,0 +1,249 @@
+import { useEffect, useState } from 'react'
+import { api } from '../lib/api'
+import { formatCurrency } from '../lib/currency'
+import { useProject } from '../context/ProjectContext'
+import { AlertTriangleIcon, DownloadIcon, CheckIcon } from '../components/ui/Icons'
+import {
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+} from 'recharts'
+
+interface DashboardMetrics {
+  totalContractValue: number
+  invoicedToDate: number
+  cashCollected: number
+  unbilledProgress: number
+  grossProfitMarginPct: number
+}
+
+interface Alert {
+  id: string
+  alertType: string
+  severity: 'info' | 'warning' | 'critical'
+  message: string
+  isDismissed: boolean
+}
+
+interface Snapshot {
+  snapshotDate: string
+  cashInPeriod: number
+  cashOutPeriod: number
+  totalCashCollected: number
+  totalActualExpenses: number
+}
+
+const severityClasses: Record<string, string> = {
+  info: 'border-blue-300 bg-blue-50 dark:bg-blue-950 text-blue-800 dark:text-blue-200',
+  warning: 'border-amber-300 bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-200',
+  critical: 'border-red-400 bg-red-50 dark:bg-red-950 text-red-800 dark:text-red-200',
+}
+
+export function FinancialDashboardPage() {
+  const { activeProjectId, isPortfolioView } = useProject()
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
+  const [alerts, setAlerts] = useState<Alert[]>([])
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([])
+  const [interval, setInterval_] = useState<'day' | 'week' | 'month'>('month')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    const path = isPortfolioView
+      ? '/dashboard/portfolio'
+      : activeProjectId
+        ? `/projects/${activeProjectId}/dashboard`
+        : null
+
+    if (!path) { setLoading(false); return }
+
+    Promise.all([
+      api.get<DashboardMetrics>(path),
+      activeProjectId
+        ? api.get<Alert[]>(`/projects/${activeProjectId}/alerts`)
+        : Promise.resolve([]),
+      activeProjectId
+        ? api.get<Snapshot[]>(`/projects/${activeProjectId}/snapshots?interval=${interval}`)
+        : Promise.resolve([]),
+    ])
+      .then(([m, a, s]) => { setMetrics(m); setAlerts(a); setSnapshots(s) })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [activeProjectId, isPortfolioView, interval])
+
+  const dismissAlert = async (id: string) => {
+    await api.patch(`/alerts/${id}/dismiss`)
+    setAlerts(a => a.filter(x => x.id !== id))
+  }
+
+  const exportReport = async (format: 'pdf' | 'csv') => {
+    if (!activeProjectId) return
+    const report = await api.post<{ id: string }>(`/projects/${activeProjectId}/reports`, {
+      reportType: 'cash_flow',
+      outputFormat: format,
+      recipientLabel: 'Lender',
+      dateRangeStart: new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10),
+      dateRangeEnd: new Date().toISOString().slice(0, 10),
+    })
+    window.open(`/api/reports/${report.id}/download`, '_blank')
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-4 animate-pulse">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="card h-28 bg-gray-100 dark:bg-gray-800" />
+          ))}
+        </div>
+        <div className="card h-72 bg-gray-100 dark:bg-gray-800" />
+      </div>
+    )
+  }
+
+  if (!metrics) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-500">
+        Select a project to view the financial dashboard
+      </div>
+    )
+  }
+
+  const metricCards = [
+    { label: 'Total Contract Value', value: metrics.totalContractValue, color: 'text-[#CC785C]' },
+    { label: 'Invoiced to Date', value: metrics.invoicedToDate, color: 'text-blue-600 dark:text-blue-400' },
+    { label: 'Cash Collected', value: metrics.cashCollected, color: 'text-green-600 dark:text-green-400' },
+    { label: 'Unbilled Progress', value: metrics.unbilledProgress, color: 'text-amber-600 dark:text-amber-400' },
+  ]
+
+  const activeAlerts = alerts.filter(a => !a.isDismissed)
+
+  return (
+    <div className="space-y-6">
+      {/* Page header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Financial Dashboard</h1>
+        <div className="flex gap-2">
+          <button
+            className="btn-secondary text-sm flex items-center gap-2"
+            onClick={() => exportReport('pdf')}
+            aria-label="Export PDF report"
+          >
+            <DownloadIcon className="w-4 h-4" /> PDF
+          </button>
+          <button
+            className="btn-secondary text-sm flex items-center gap-2"
+            onClick={() => exportReport('csv')}
+            aria-label="Export CSV report"
+          >
+            <DownloadIcon className="w-4 h-4" /> CSV
+          </button>
+        </div>
+      </div>
+
+      {/* Metric cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4" role="region" aria-label="Financial metrics">
+        {metricCards.map(card => (
+          <div key={card.label} className="card">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{card.label}</p>
+            <p className={`mt-2 text-2xl font-semibold ${card.color}`}>
+              {formatCurrency(card.value)}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Action-item banner */}
+      {activeAlerts.length > 0 && (
+        <div className="space-y-2" role="region" aria-label="Action items">
+          {activeAlerts.map(alert => (
+            <div
+              key={alert.id}
+              className={`flex items-start gap-3 p-3 rounded-lg border text-sm ${severityClasses[alert.severity]}`}
+              role="alert"
+              aria-live="polite"
+            >
+              <AlertTriangleIcon className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <span className="flex-1">{alert.message}</span>
+              <button
+                className="flex-shrink-0 underline text-xs"
+                onClick={() => dismissAlert(alert.id)}
+                aria-label={`Dismiss alert: ${alert.message}`}
+              >
+                Dismiss
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Cash Flow Burn-Down Chart */}
+      <div className="card" role="region" aria-label="Cash flow chart">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold">Cash Flow</h2>
+          <div className="flex gap-1" role="group" aria-label="Chart interval">
+            {(['day', 'week', 'month'] as const).map(i => (
+              <button
+                key={i}
+                onClick={() => setInterval_(i)}
+                className={`px-3 py-1 text-xs rounded-md transition-colors duration-150 ${
+                  interval === i
+                    ? 'bg-[#CC785C] text-white'
+                    : 'hover:bg-[#F5F5F5] dark:hover:bg-[#404040]'
+                }`}
+                aria-pressed={interval === i}
+              >
+                {i.charAt(0).toUpperCase() + i.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+        {snapshots.length === 0 ? (
+          <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
+            No data available for selected period
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={snapshots} margin={{ top: 5, right: 20, bottom: 5, left: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E5E5" />
+              <XAxis dataKey="snapshotDate" tick={{ fontSize: 11 }} />
+              <YAxis tickFormatter={v => `$${(v / 100000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
+              <Tooltip
+                formatter={(value: number, name: string) => [formatCurrency(value), name]}
+                labelStyle={{ fontWeight: 600 }}
+              />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="totalCashCollected"
+                name="Cumulative Income"
+                stroke="#22c55e"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="totalActualExpenses"
+                name="Cumulative Expenses"
+                stroke="#ef4444"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
+        <p className="mt-2 text-xs text-gray-500 text-right">
+          Gross Margin: {metrics.grossProfitMarginPct?.toFixed(1) ?? '—'}%
+        </p>
+      </div>
+
+      {/* Gross margin card */}
+      {activeAlerts.length === 0 && (
+        <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
+          <CheckIcon className="w-4 h-4" aria-hidden="true" />
+          No outstanding action items
+        </div>
+      )}
+    </div>
+  )
+}

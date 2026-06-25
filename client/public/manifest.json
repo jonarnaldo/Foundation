@@ -1,0 +1,16 @@
+{
+  "name": "Foundation",
+  "short_name": "Foundation",
+  "description": "Construction Finance Orchestration Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#CC785C",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
