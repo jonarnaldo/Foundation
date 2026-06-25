@@ -1,0 +1,811 @@
+<project_specification>
+  <project_name>Foundation</project_name>
+
+  <overview>
+    Build a web-based application that acts as an intelligent orchestration layer that sits between the construction 
+    project schedule and the bank feed. Instead of treating invoices as isolated financial documents, the app treats 
+    them as milestones tied to real-world triggers. 
+  </overview>
+
+  <technology_stack>
+    <api_key>
+        You can use an API key located at /tmp/api-key for testing. You will not be allowed to read this file, but you can reference it in code.
+    </api_key>
+    <frontend>
+      <framework>React with Vite</framework>
+      <styling>Tailwind CSS (via CDN)</styling>
+      <state_management>React hooks and context</state_management>
+      <routing>React Router for navigation</routing>
+      <markdown>React Markdown for message rendering</markdown>
+      <code_highlighting>Syntax highlighting for code blocks</code_highlighting>
+      <port>Only launch on port {frontend_port}</port>
+    </frontend>
+    <backend>
+      <runtime>Node.js with TypeScript and NestJS framework; enforces strict type safety for financial calculations and provides enterprise-grade modular architecture. Currency values stored as integers (minor units / cents) using PostgreSQL NUMERIC type or big.js to avoid floating-point rounding errors.</runtime>
+      <database>
+        PostgreSQL (primary) — ACID-compliant relational store for ledger data, transactions, invoices, and contractor profiles;
+        TimescaleDB extension — time-series aggregations for burn rate charts and cash flow history;
+        Redis — caching layer for session data, Plaid API responses, and dashboard metrics;
+        AWS KMS or HashiCorp Vault — encryption at rest for bank tokens and PII
+      </database>
+      <api_integration>
+        Plaid — bank account aggregation, real-time transaction sync, balance checks (via webhooks);
+        Stripe API — invoice generation, credit card processing, ACH transfers;
+        QuickBooks Online API or Xero API — one-click accounting sync for tax handoff;
+        Auth0 — authentication provider with mandatory MFA for financial-grade security
+      </api_integration>
+      <streaming>BullMQ (Redis-backed) for async background job queues — processes Plaid transaction webhooks, runs 3-month cash flow forecast calculations, and dispatches invoice reminder notifications without blocking the main request thread</streaming>
+    </backend>
+    <communication>
+      <api>RESTful API routed through NGINX or AWS API Gateway; NestJS controllers map to resource-based endpoints (e.g. /transactions, /invoices, /forecasts); optional GraphQL layer for flexible dashboard data queries</api>
+      <streaming>Plaid webhooks trigger async BullMQ jobs for real-time transaction ingestion; Server-Sent Events (SSE) or WebSockets push live cash flow updates and forecast recalculations to the frontend dashboard</streaming>
+      <claude_api>Integration with Claude API using Anthropic SDK — used for natural language cash flow summaries, anomaly explanations (e.g. "Your income dropped 40% this month because..."), and contractor-facing forecast narratives generated from structured financial data</claude_api>
+    </communication>
+  </technology_stack>
+
+  <prerequisites>
+    <environment_setup>
+      - Frontend dependencies pre-installed via pnpm
+      - Backend code goes in /server directory
+      - Install backend dependencies as needed
+    </environment_setup>
+  </prerequisites>
+
+  <core_features>
+    <project_schedule_builder>
+      - Phase-based project structuring (e.g., Site Prep, Foundation, Framing)
+      - Itemized line-item cost allocation with detailed descriptions
+      - Milestone-based trigger definition (e.g., "Passed Mechanical Inspection")
+      - Drag-and-drop interface for reordering project phases and tasks
+      - Document attachment vault for uploading inspection PDFs and site photos directly to milestones
+      - Visual progress tracking via completion percentages and color-coded status badges
+      - "Ready to Invoice" automated approval toggle upon milestone criteria completion
+      - Integration mapping to assign specific milestones to corresponding QuickBooks item codes
+    </project_schedule_builder>
+
+    <project_financial_dashboard>
+      - Multi-project portfolio aggregate overview and individual project drill-down views
+      - Real-time cash flow graphs tracking money in versus money out per active project
+      - Core financial metric cards: Total Contract Value, Invoiced-to-Date, Cash Collected, and Unbilled Completed Work
+      - Live gross profit margin calculator updated instantly by transaction logging
+      - Proactive alerts for un-invoiced completed milestones or overdue client draws
+      - Interactive expense tracking against estimated budget itemizations (burn-down charts)
+      - One-click financial report exporter (PDF and CSV formats) for lenders, clients, or accountants
+    </project_financial_dashboard>
+
+    <bank_sync_transaction_matcher>
+      - Secure bank feed integration (via Plaid) for real-time monitoring of cleared deposits
+      - Centralized incoming ledger displaying cleared checks, ACH payments, and wire transfers
+      - Automated matching engine filtering deposits by exact milestone dollar amounts and dates
+      - OCR memo parsing engine to scan digital check images for project names or phase keywords
+      - Manual "One-Click Match" reconciliation interface for irregular or partial payment edge-cases
+      - Split-payment allocation utility to distribute a single large check across multiple active milestones
+      - Two-way QuickBooks write-back to auto-generate the itemized invoice and mark it as Paid instantly
+      - Historical reconciliation audit trail logging matching history, user confirmations, and ledger adjustments
+    </bank_sync_transaction_matcher>
+
+    <accessibility>
+      - Full keyboard navigation
+      - Screen reader support
+      - ARIA labels and roles
+      - High contrast mode
+      - Focus management
+      - Reduced motion support
+    </accessibility>
+
+    <responsive_design>
+      - Mobile-first responsive layout
+      - Touch-optimized interface
+      - Collapsible sidebar on mobile
+      - Swipe gestures for navigation
+      - Adaptive artifact display
+      - Progressive Web App (PWA) support
+    </responsive_design>
+  </core_features>
+
+  <database_schema>
+    <tables>
+      <projects>
+        - id, user_id (FK → users), name, description
+        - client_name, client_email, client_phone
+        - contract_value (decimal), contract_number
+        - status (enum: draft, active, on_hold, completed, archived)
+        - start_date, estimated_end_date, actual_end_date
+        - quickbooks_customer_id
+        - created_at, updated_at
+      </projects>
+      
+      <project_phases>
+        - id, project_id (FK → projects), name, description
+        - sort_order (integer — drives drag-and-drop ordering)
+        - status (enum: not_started, in_progress, completed)
+        - color_code (hex string — for status badge rendering)
+        - completion_percentage (decimal 0–100, computed from child milestones)
+        - estimated_start_date, estimated_end_date
+        - actual_start_date, actual_end_date
+        - created_at, updated_at
+      </project_phases>
+      
+      <phase_line_items>
+        - id, phase_id (FK → project_phases), name, description
+        - sort_order (integer)
+        - quantity (decimal), unit (string: e.g., "sq ft", "hrs", "each")
+        - unit_cost (decimal), total_cost (decimal, computed: quantity × unit_cost)
+        - cost_category (enum: labor, materials, subcontractor, equipment, overhead, other)
+        - quickbooks_item_code (string)
+        - notes
+        - created_at, updated_at
+      </phase_line_items>
+      
+      <milestones>
+        - id, phase_id (FK → project_phases), name, description
+        - sort_order (integer — drives drag-and-drop ordering)
+        - trigger_definition (string: e.g., "Passed Mechanical Inspection")
+        - status (enum: pending, in_progress, criteria_met, approved, invoiced, paid)
+        - color_badge (enum: gray, yellow, blue, green, red — maps to status)
+        - completion_percentage (decimal 0–100)
+        - scheduled_amount (decimal — the draw amount tied to this milestone)
+        - ready_to_invoice (boolean, default false — auto-approval toggle)
+        - ready_to_invoice_triggered_at (timestamp)
+        - ready_to_invoice_triggered_by (FK → users)
+        - quickbooks_item_code (string — integration mapping)
+        - quickbooks_invoice_id (string)
+        - due_date
+        - created_at, updated_at
+      </milestones>
+      
+      <milestone_criteria>
+        - id, milestone_id (FK → milestones), description
+        - is_met (boolean, default false)
+        - met_at (timestamp), met_by (FK → users)
+        - sort_order (integer)
+        - created_at, updated_at
+      </milestone_criteria>
+      
+      <milestone_documents>
+        - id, milestone_id (FK → milestones), uploaded_by (FK → users)
+        - file_name, file_type (enum: pdf, jpg, png, heic, other)
+        - file_url (string — cloud storage path)
+        - file_size_bytes (integer)
+        - category (enum: inspection_report, site_photo, contract, permit, other)
+        - description, notes
+        - created_at
+      </milestone_documents>
+
+      <project_financial_snapshots>
+        - id, project_id (FK → projects)
+        - snapshot_date (date — daily rollup for graph time series)
+        - total_contract_value (decimal)
+        - total_invoiced_to_date (decimal)
+        - total_cash_collected (decimal)
+        - unbilled_completed_work (decimal — value of approved milestones not yet invoiced)
+        - total_estimated_expenses (decimal)
+        - total_actual_expenses (decimal)
+        - gross_profit (decimal, computed: cash_collected − actual_expenses)
+        - gross_profit_margin_pct (decimal, computed: gross_profit ÷ total_contract_value)
+        - cash_in_period (decimal — money received within this snapshot period)
+        - cash_out_period (decimal — money spent within this snapshot period)
+        - created_at
+      </project_financial_snapshots>
+      
+      <project_expenses>
+        - id, project_id (FK → projects), phase_id (FK → project_phases, nullable)
+        - line_item_id (FK → phase_line_items, nullable)
+        - vendor_name, description
+        - amount (decimal)
+        - expense_date (date)
+        - category (enum: labor, materials, subcontractor, equipment, overhead, other)
+        - payment_method (enum: check, ach, wire, card, cash, other)
+        - receipt_url (string — cloud storage path)
+        - quickbooks_expense_id (string)
+        - notes
+        - created_at, updated_at, created_by (FK → users)
+      </project_expenses>
+      
+      <financial_alerts>
+        - id, project_id (FK → projects), milestone_id (FK → milestones, nullable)
+        - alert_type (enum: uninvoiced_milestone, overdue_draw, budget_overrun,
+                            low_cash_flow, margin_threshold_breach)
+        - severity (enum: info, warning, critical)
+        - message (string)
+        - is_dismissed (boolean, default false)
+        - dismissed_at (timestamp), dismissed_by (FK → users)
+        - created_at
+      </financial_alerts>
+      
+      <financial_reports>
+        - id, project_id (FK → projects, nullable — null = portfolio-level)
+        - report_type (enum: cash_flow, profit_loss, budget_vs_actual, draw_schedule,
+                              portfolio_summary)
+        - generated_by (FK → users)
+        - date_range_start (date), date_range_end (date)
+        - output_format (enum: pdf, csv)
+        - file_url (string — cloud storage path)
+        - recipient_label (string: e.g., "Lender", "Client", "Accountant")
+        - created_at
+      </financial_reports>
+
+      <bank_accounts>
+      - id, user_id (FK → users)
+      - plaid_access_token (encrypted string)
+      - plaid_item_id (string)
+      - plaid_account_id (string)
+      - institution_name, account_name, account_type (enum: checking, savings, other)
+      - account_mask (last 4 digits)
+      - currency_code (default: "USD")
+      - is_active (boolean)
+      - last_synced_at (timestamp)
+      - created_at, updated_at
+    </bank_accounts>
+    
+    <bank_transactions>
+      - id, bank_account_id (FK → bank_accounts)
+      - plaid_transaction_id (string, unique)
+      - transaction_type (enum: deposit, withdrawal, transfer, fee, other)
+      - payment_channel (enum: check, ach, wire, card, other)
+      - amount (decimal — positive = credit/deposit)
+      - currency_code (default: "USD")
+      - posted_date (date), authorized_date (date)
+      - description, memo (string — raw bank memo text)
+      - check_number (string)
+      - check_image_url (string — for OCR processing)
+      - ocr_parsed_text (text — extracted from check image)
+      - ocr_parsed_keywords (JSON array — project names / phase keywords detected)
+      - match_status (enum: unmatched, auto_matched, manually_matched,
+                            split_matched, ignored)
+      - created_at, updated_at
+    </bank_transactions>
+    
+    <transaction_matches>
+      - id, bank_transaction_id (FK → bank_transactions)
+      - milestone_id (FK → milestones)
+      - matched_amount (decimal — portion of the transaction applied to this milestone)
+      - match_method (enum: auto_amount, auto_ocr, manual_one_click, split_allocation)
+      - match_confidence_score (decimal 0–1 — auto-match engine confidence)
+      - matched_by (FK → users, nullable — null if fully automated)
+      - matched_at (timestamp)
+      - quickbooks_invoice_id (string — written back to QBO)
+      - quickbooks_payment_id (string — written back to QBO)
+      - quickbooks_sync_status (enum: pending, synced, failed)
+      - quickbooks_synced_at (timestamp)
+      - notes
+      - created_at, updated_at
+    </transaction_matches>
+    
+    <split_payment_allocations>
+      - id, bank_transaction_id (FK → bank_transactions)
+      - total_transaction_amount (decimal)
+      - allocation_count (integer — number of milestones this payment was split across)
+      - allocated_by (FK → users)
+      - allocated_at (timestamp)
+      - notes
+      - created_at
+    </split_payment_allocations>
+    
+    <split_payment_allocation_lines>
+      - id, split_payment_allocation_id (FK → split_payment_allocations)
+      - milestone_id (FK → milestones)
+      - transaction_match_id (FK → transaction_matches)
+      - allocated_amount (decimal)
+      - sort_order (integer)
+      - created_at
+    </split_payment_allocation_lines>
+    
+    <reconciliation_audit_log>
+      - id, bank_transaction_id (FK → bank_transactions)
+      - transaction_match_id (FK → transaction_matches, nullable)
+      - performed_by (FK → users, nullable — null if system action)
+      - action (enum: auto_match_proposed, auto_match_confirmed, manually_matched,
+                      match_undone, split_created, split_modified, quickbooks_synced,
+                      quickbooks_sync_failed, transaction_ignored, transaction_unignored,
+                      ocr_parsed)
+      - previous_state (JSON — snapshot of match or transaction state before action)
+      - new_state (JSON — snapshot of match or transaction state after action)
+      - notes
+      - created_at
+    </reconciliation_audit_log>
+    </tables>
+  </database_schema>
+
+  <api_endpoints_summary>
+    <authentication>
+      - POST   /api/auth/login
+      - POST   /api/auth/logout
+      - GET    /api/auth/me
+      - PUT    /api/auth/profile
+    </authentication>
+  
+    <global_search>
+      - GET    /api/search?q={query}&type={check|project|client}
+                — Powers the top header global search bar
+    </global_search>
+  
+    <projects>
+      - GET    /api/projects
+                — Returns all projects; used by Project Dropdown Switcher and portfolio view
+      - POST   /api/projects
+      - GET    /api/projects/:projectId
+      - PUT    /api/projects/:projectId
+      - DELETE /api/projects/:projectId
+      - GET    /api/projects/:projectId/summary
+                — Lightweight rollup: contract value, status, phase count, last activity;
+                  used to populate Project Dropdown Switcher cards
+    </projects>
+  
+    <project_phases>
+      - GET    /api/projects/:projectId/phases
+                — Returns ordered phase list with completion percentages; drives Phase Accordion Cards
+      - POST   /api/projects/:projectId/phases
+      - PUT    /api/projects/:projectId/phases/:phaseId
+      - DELETE /api/projects/:projectId/phases/:phaseId
+      - PATCH  /api/projects/:projectId/phases/reorder
+                — Accepts ordered array of phase IDs; persists drag-and-drop sort_order changes
+    </project_phases>
+  
+    <phase_line_items>
+      - GET    /api/phases/:phaseId/line-items
+      - POST   /api/phases/:phaseId/line-items
+      - PUT    /api/phases/:phaseId/line-items/:lineItemId
+      - DELETE /api/phases/:phaseId/line-items/:lineItemId
+    </phase_line_items>
+  
+    <milestones>
+      - GET    /api/phases/:phaseId/milestones
+                — Returns ordered milestone rows with status badges and scheduled amounts
+      - POST   /api/phases/:phaseId/milestones
+                — Triggered by the Add Milestone modal submission
+      - GET    /api/milestones/:milestoneId
+      - PUT    /api/milestones/:milestoneId
+      - DELETE /api/milestones/:milestoneId
+      - PATCH  /api/milestones/reorder
+                — Accepts array of { milestoneId, phaseId, sortOrder }; supports
+                  cross-phase reassignment via drag-and-drop grip handles
+      - PATCH  /api/milestones/:milestoneId/ready-to-invoice
+                — Flips the ready_to_invoice toggle; triggers confirmation modal payload
+                  (returns projected QuickBooks invoice number + dollar amount for display)
+    </milestones>
+  
+    <milestone_criteria>
+      - GET    /api/milestones/:milestoneId/criteria
+      - POST   /api/milestones/:milestoneId/criteria
+      - PUT    /api/milestones/:milestoneId/criteria/:criteriaId
+                — Marks individual criterion as met (is_met, met_at, met_by)
+      - DELETE /api/milestones/:milestoneId/criteria/:criteriaId
+    </milestone_criteria>
+  
+    <milestone_documents>
+      - GET    /api/milestones/:milestoneId/documents
+                — Returns document thumbnails for the Inline Media Dock
+      - POST   /api/milestones/:milestoneId/documents
+                — Multipart upload for inspection PDFs and site photos
+      - GET    /api/milestones/:milestoneId/documents/:documentId
+                — Returns full document metadata and signed download URL
+      - DELETE /api/milestones/:milestoneId/documents/:documentId
+    </milestone_documents>
+  
+    <financial_dashboard>
+      - GET    /api/dashboard/portfolio
+                — Aggregate overview across all active projects; drives multi-project
+                  portfolio view with combined metric cards
+      - GET    /api/projects/:projectId/dashboard
+                — Individual project drill-down: metric cards (Total Contract Value,
+                  Invoiced to Date, Cash Collected, Unbilled Progress) + action-item banner data
+      - GET    /api/projects/:projectId/snapshots?from={date}&to={date}&interval={day|week|month}
+                — Time-series data for the Cash Flow Burn-Down Chart (income line vs. expense line)
+      - GET    /api/projects/:projectId/alerts
+                — Returns active financial alerts (un-invoiced milestones, overdue draws)
+                  to populate the Dynamic Action-Item Banner
+      - PATCH  /api/alerts/:alertId/dismiss
+      - GET    /api/projects/:projectId/expenses
+      - POST   /api/projects/:projectId/expenses
+      - PUT    /api/projects/:projectId/expenses/:expenseId
+      - DELETE /api/projects/:projectId/expenses/:expenseId
+      - POST   /api/projects/:projectId/reports
+                — Generates a financial report; accepts { report_type, date_range, output_format,
+                  recipient_label }; returns report record with download URL
+      - GET    /api/reports/:reportId/download
+                — Streams the generated PDF or CSV file for one-click export
+    </financial_dashboard>
+  
+    <bank_sync_transaction_matcher>
+  
+      <plaid_integration>
+        - POST   /api/plaid/link-token
+                  — Creates a short-lived Plaid Link token to initialize the Plaid SDK flow
+        - POST   /api/plaid/exchange-token
+                  — Exchanges Plaid's public token for a permanent access token and persists
+                    the bank account record
+      </plaid_integration>
+  
+      <bank_accounts>
+        - GET    /api/bank-accounts
+                  — Lists all connected bank accounts and their last-synced timestamps
+        - DELETE /api/bank-accounts/:bankAccountId
+        - POST   /api/bank-accounts/:bankAccountId/sync
+                  — Manually triggers a Plaid pull to refresh cleared transactions
+      </bank_accounts>
+  
+      <transactions>
+        - GET    /api/transactions?status={unmatched|matched|ignored}&accountId=&from=&to=
+                  — Paginated ledger for the Left Split-Pane (unlinked bank feed); returns
+                    date, raw memo, check image thumbnail, and deposit amount
+        - GET    /api/transactions/:transactionId
+                  — Full transaction detail for the Transaction Detail Modal: metadata,
+                    OCR-parsed text, check image, and any linked milestone
+        - PATCH  /api/transactions/:transactionId/ignore
+                  — Marks a transaction as intentionally excluded from matching
+        - PATCH  /api/transactions/:transactionId/unignore
+      </transactions>
+  
+      <ai_suggested_matches>
+        - GET    /api/transactions/:transactionId/suggested-matches
+                  — Powers the Right Split-Pane; returns ranked list of milestone candidates
+                    with match_confidence_score (amount match, OCR keyword match, date proximity)
+      </ai_suggested_matches>
+  
+      <reconciliation>
+        - POST   /api/transactions/:transactionId/match
+                  — Confirms a single milestone match; triggers the "Link & Sync" animation,
+                    writes back to QuickBooks, and sets milestone status to Paid
+                    Body: { milestoneId, matchMethod }
+        - DELETE /api/transactions/:transactionId/match
+                  — Unlinks a confirmed match and reverts milestone status
+      </reconciliation>
+  
+      <split_payments>
+        - POST   /api/transactions/:transactionId/split
+                  — Creates a split_payment_allocation and its child lines;
+                    drives the Split-Payment Utility Drawer multi-milestone selection
+                    Body: { allocations: [{ milestoneId, allocatedAmount }] }
+        - PUT    /api/transactions/:transactionId/split
+                  — Updates an existing split allocation (adjusts amounts or adds/removes lines)
+        - DELETE /api/transactions/:transactionId/split
+                  — Removes the split allocation entirely and unlinks all milestone legs
+      </split_payments>
+  
+      <audit_log>
+        - GET    /api/reconciliation/audit-log?projectId=&from=&to=
+                  — Full historical audit trail across all transactions with actor and timestamps
+        - GET    /api/transactions/:transactionId/audit-log
+                  — Scoped audit trail for a single transaction's match history and
+                    QuickBooks write-back events
+      </audit_log>
+  
+    </bank_sync_transaction_matcher>
+  
+    <quickbooks_integration>
+      - GET    /api/integrations/quickbooks/status
+                — Returns connection state (connected/needs-reauth/disconnected) for the
+                  Live QuickBooks Sync Indicator badge in the top header
+      - POST   /api/integrations/quickbooks/connect
+                — Initiates the QuickBooks OAuth flow; returns the redirect URL
+      - POST   /api/integrations/quickbooks/disconnect
+      - POST   /api/integrations/quickbooks/sync
+                — Manually triggers a full write-back sync for pending QuickBooks records
+      - GET    /api/integrations/quickbooks/item-codes
+                — Returns available QB item codes for the Integration Mapping selector
+                — on milestone and line-item records
+    </quickbooks_integration>
+  
+    <settings>
+      - GET    /api/settings
+      - PUT    /api/settings
+    </settings>
+  </api_endpoints_summary>
+
+
+  <ui_layout>
+    <main_structure>
+      <top_header>
+        - Global search bar (search by check number, project name, or client)
+        - Live QuickBooks Sync Indicator badge (far right): Green = connected, Amber = re-authentication needed
+      </top_header>
+
+      <main_content>
+        - Renders the active page based on sidebar navigation selection
+        - Defaults to the Financial Dashboard of the default project, or last opened project if no default is set
+
+        <project_schedule_builder_page>
+          - Phase Accordion Cards: Expandable block sections per project phase (e.g., Phase 1: Site Prep, Phase 2: Foundation)
+          - Milestone Row Component: Horizontal row per milestone showing title, target dollar value, and Status Badge (Draft, In Progress, Awaiting Inspection, Ready to Invoice, Paid)
+          - Drag-and-Drop Grip Handle: Texture dots on the left edge of each milestone row for reordering and phase reassignment
+          - "Ready to Invoice" Action Toggle: Slide-toggle that turns green on activation and opens a confirmation modal ("This will generate Invoice #1004 in QuickBooks for $20,000. Proceed?")
+          - Inline Media Dock: Thumbnail slot at the end of each milestone row for uploading/viewing inspection PDFs and field photos
+          - Plus button (top right): Opens an Add Milestone modal
+        </project_schedule_builder_page>
+
+        <project_financial_dashboard_page>
+          - Financial Metric Card Grid (four summary cards):
+            - Total Contract Value
+            - Invoiced to Date
+            - Cash Collected
+            - Unbilled Progress
+          - Cash Flow Burn-Down Chart: Dual-line interactive graph — green line (cumulative income/cleared checks) vs. red line (expenses/subcontractor payouts) over a monthly timeline; hover reveals exact dollar totals per date
+          - Dynamic Action-Item Banner: Non-intrusive notification strip surfacing immediate actions (e.g., "$35,000 in approved milestones ready for invoicing")
+        </project_financial_dashboard_page>
+
+        <bank_sync_transaction_matcher_page>
+          - Left Split-Pane — Unlinked Bank Feed Ledger: Vertical feed of incoming bank transactions showing date, raw bank metadata string, check image thumbnail (if available), and bold deposit amount
+          - Right Split-Pane — AI-Suggested Matches: Updates on transaction selection to show likely matching milestones with a Match Score Badge (percentage based on dollar value or memo keyword match)
+          - "Link & Sync" Reconciliation Button: Confirms match with animation (transaction slides and locks onto milestone), updates QuickBooks, and sets milestone status to Paid
+          - Split-Payment Utility Drawer: Slide-out panel for single checks covering multiple milestones; allows multi-milestone selection with a running balance that decrements to $0
+        </bank_sync_transaction_matcher_page>
+      </main_content>
+    </main_structure>
+
+    <sidebar_left>
+      - Collapsible left sidebar with primary navigation
+      - Project Dropdown Switcher (top of sidebar): Filter entire app view to a single job site or aggregate portfolio view
+      - Navigation links:
+        - Project & Schedule Builder
+        - Finances
+        - Settings
+    </sidebar_left>
+
+    <modals_overlays>
+      - Add Milestone modal: Triggered by plus button on Project & Schedule Builder; form to define milestone title, dollar value, phase assignment, and completion criteria
+      - Ready to Invoice confirmation modal: Confirms QuickBooks invoice generation for a specific milestone (displays invoice number and dollar amount)
+      - Transaction detail modal: Opened by clicking a transaction in the bank feed; shows full metadata, check image, and linked milestone
+      - Split-payment utility drawer: Slide-out panel for allocating a single check across multiple open milestones
+      - Settings modal
+    </modals_overlays>
+  </ui_layout>
+
+
+  <design_system>
+    <color_palette>
+      - Primary: Orange/amber accent (#CC785C claude-style)
+      - Background: White (light mode), Dark gray (#1A1A1A dark mode)
+      - Surface: Light gray (#F5F5F5 light), Darker gray (#2A2A2A dark)
+      - Text: Near black (#1A1A1A light), Off-white (#E5E5E5 dark)
+      - Borders: Light gray (#E5E5E5 light), Dark gray (#404040 dark)
+      - Code blocks: Monaco editor theme
+    </color_palette>
+
+    <typography>
+      - Sans-serif system font stack (Inter, SF Pro, Roboto, system-ui)
+      - Headings: font-semibold
+      - Body: font-normal, leading-relaxed
+      - Code: Monospace (JetBrains Mono, Consolas, Monaco)
+      - Message text: text-base (16px), comfortable line-height
+    </typography>
+
+    <components>
+      <buttons>
+        - Primary: Orange/amber background, white text, rounded
+        - Secondary: Border style with hover fill
+        - Icon buttons: Square with hover background
+        - Disabled state: Reduced opacity, no pointer events
+      </buttons>
+
+      <inputs>
+        - Rounded borders with focus ring
+        - Textarea auto-resize
+        - Placeholder text in gray
+        - Error states in red
+        - Character counter
+      </inputs>
+
+      <cards>
+        - Subtle border or shadow
+        - Rounded corners (8px)
+        - Padding: p-4 to p-6
+        - Hover state: slight shadow increase
+      </cards>
+    </components>
+
+    <animations>
+      - Smooth transitions (150-300ms)
+      - Fade in for new messages
+      - Slide in for sidebar
+      - Typing indicator animation
+      - Loading spinner for generation
+      - Skeleton loaders for content
+    </animations>
+  </design_system>
+
+  <key_interactions>
+    <global_navigation>
+      1. Click the Project Dropdown Switcher (top of left sidebar) to switch the
+        entire app view to a different job site, or select "Portfolio View" to
+        see aggregated data across all active projects
+      2. App defaults to the Financial Dashboard of the user's default project on
+        load; if no default is set, it reopens the last active project
+      3. Click "Project & Schedule Builder", "Finances", or "Settings" in the
+        left sidebar to switch the main content area
+      4. Click the collapse arrow on the left sidebar to hide it and expand the
+        main content area; click again to restore
+      5. Type into the global search bar (top header) to search across check
+        numbers, project names, and client names in real-time; click a result
+        to navigate directly to that record
+      6. Monitor the QuickBooks Sync Indicator badge (top-right header): green
+        means connected, amber means re-authentication is required; click the
+        amber badge to trigger the QuickBooks OAuth reconnect flow
+    </global_navigation>
+
+    <project_schedule_builder>
+      1. Click a Phase Accordion Card header to expand or collapse its milestone
+        rows; all phases default to expanded on first load
+      2. Grab the texture-dot grip handle on the left edge of any milestone row
+        and drag vertically to reorder it within its phase; drag across a phase
+        boundary to reassign it to a different phase — sort order and phase
+        assignment persist immediately on drop
+      3. Grab the grip handle on a Phase Accordion Card header to reorder entire
+        phases; all child milestones move with their parent phase
+      4. Click the plus button (top-right of the page) to open the Add Milestone
+        modal; fill in title, dollar value, phase assignment, and completion
+        criteria, then click "Save" to append the milestone to the selected phase
+      5. Read the Status Badge on each milestone row to understand its current
+        state (Draft → In Progress → Awaiting Inspection → Ready to Invoice → Paid);
+        badge color updates automatically as criteria are met
+      6. Click the inline media dock thumbnail slot at the end of a milestone row
+        to upload an inspection PDF or site photo; uploaded files display as
+        thumbnail previews; click a thumbnail to open the full document viewer
+      7. Flip the "Ready to Invoice" slide-toggle on a milestone row to green;
+        a confirmation modal appears showing the projected QuickBooks invoice
+        number and dollar amount — click "Proceed" to generate the invoice or
+        "Cancel" to revert the toggle
+      8. Click directly on a milestone title, dollar value, or criteria text to
+        edit it inline; changes save on blur or Enter keypress
+    </project_schedule_builder>
+
+    <project_financial_dashboard>
+      1. Read the four Financial Metric Cards at a glance (Total Contract Value,
+        Invoiced to Date, Cash Collected, Unbilled Progress); cards update in
+        real-time as transactions are logged and milestones are reconciled
+      2. Hover over any point on the Cash Flow Burn-Down Chart to reveal a tooltip
+        showing the exact cumulative income (green line) and cumulative expense
+        (red line) dollar totals for that date
+      3. Use the date range selector above the chart to switch between monthly,
+        quarterly, and project-lifetime views
+      4. Read the Dynamic Action-Item Banner below the metric cards for proactive
+        alerts (e.g., "3 approved milestones totaling $35,000 are ready to invoice");
+        click the banner CTA to jump directly to the relevant milestones in the
+        Schedule Builder
+      5. Click "Dismiss" on an individual alert in the banner to suppress it
+        without taking action
+      6. Click "Export Report" and select PDF or CSV to generate a financial
+        report; choose a recipient label (Lender, Client, Accountant) before
+        confirming — the file is generated and downloaded immediately
+      7. Toggle between "This Project" and "Portfolio View" (top of dashboard)
+        to switch between individual project drill-down and the aggregate
+        multi-project overview
+    </project_financial_dashboard>
+
+    <bank_sync_transaction_matcher>
+      1. The Left Split-Pane auto-populates with cleared deposits from connected
+        bank accounts via Plaid on page load; new transactions appear at the top
+        sorted by posted date
+      2. Click any transaction row in the Left Split-Pane to select it; the Right
+        Split-Pane immediately updates to display AI-suggested milestone matches
+        ranked by Match Score Badge (percentage reflecting dollar-amount proximity
+        and OCR memo keyword overlap)
+      3. Click a suggested match in the Right Split-Pane to highlight it; review
+        the match score rationale (amount match, date proximity, keyword hits)
+        before confirming
+      4. Click "Link & Sync" to confirm the match; the transaction row animates
+        sliding across and locking onto the milestone, the milestone status
+        updates to Paid, and a QuickBooks write-back fires to auto-generate the
+        itemized invoice and mark it as Paid
+      5. Click a transaction's check image thumbnail to open the Transaction Detail
+        Modal, which displays full bank metadata, the enlarged check image, OCR-
+        parsed text, and any currently linked milestone
+      6. Click "Ignore" on a transaction row to exclude it from the unmatched
+        feed; click "Unignore" from the audit log view to restore it
+      7. Click "Split Payment" on a transaction row to open the Split-Payment
+        Utility Drawer; select multiple open milestones from the list and enter
+        an allocated amount for each — a running balance decrements in real-time
+        toward $0; click "Confirm Split" when the balance is fully allocated
+      8. Click "Undo Match" on a previously reconciled transaction to unlink it
+        from its milestone, revert the milestone status, and queue a QuickBooks
+        reversal — all steps are logged to the audit trail
+      9. Click "View Audit Log" (bottom of the page) to open the full historical
+        reconciliation trail showing every match, confirmation, split, and
+        QuickBooks sync event with actor identity and timestamp
+    </bank_sync_transaction_matcher>
+
+    <modals_and_overlays>
+      1. Add Milestone Modal: Opened via the plus button on the Schedule Builder;
+        complete all required fields (title, dollar value, phase, criteria) and
+        click "Add Milestone" to append; click outside the modal or press Escape
+        to dismiss without saving
+      2. Ready to Invoice Confirmation Modal: Triggered by flipping the
+        "Ready to Invoice" toggle; displays the projected QuickBooks invoice
+        number and exact dollar amount for review; click "Proceed" to commit
+        or "Cancel" to revert — cannot be dismissed by clicking outside to
+        prevent accidental invoice generation
+      3. Transaction Detail Modal: Opened by clicking a transaction row in the
+        bank feed; displays full metadata, check image, OCR text, and linked
+        milestone; click "Open in Schedule Builder" to navigate directly to
+        the matched milestone; close via the X button or Escape
+      4. Split-Payment Utility Drawer: Slides in from the right edge of the
+        screen over the transaction matcher; supports multi-milestone selection
+        with per-row amount inputs and a live running balance counter; closing
+        the drawer without confirming discards all unsaved allocations
+      5. Settings Modal: Opened via the "Settings" sidebar link; organized into
+        tabbed sections (Account, Integrations, Notifications); changes save
+        per-section via individual "Save" buttons
+    </modals_and_overlays>
+
+    <quickbooks_integration>
+      1. Click "Connect QuickBooks" in Settings → Integrations to initiate the
+        OAuth flow; complete authentication in the QuickBooks popup window;
+        on success the top-header badge turns green
+      2. Click the amber QuickBooks Sync Indicator badge at any time to trigger
+        re-authentication without navigating away from the current page
+      3. Assign a QuickBooks item code to any milestone or line item via the
+        inline item-code selector on the Schedule Builder; codes are pulled
+        live from the connected QuickBooks account
+      4. QuickBooks invoices are auto-generated and marked as Paid when "Link &
+        Sync" is confirmed in the transaction matcher — no manual QB entry required
+      5. Click "Force Sync" in Settings → Integrations to manually trigger a
+        write-back for any records showing a pending or failed QuickBooks sync status
+    </quickbooks_integration>
+
+    <plaid_bank_connection>
+      1. Click "Connect Bank Account" in Settings → Integrations to launch the
+        Plaid Link modal; search for and select the bank institution, then
+        authenticate with online banking credentials inside the Plaid-hosted flow
+      2. On successful connection, the bank account appears in the connected
+        accounts list with its last-synced timestamp
+      3. Transactions begin populating the bank feed automatically; click
+        "Sync Now" next to any connected account to force an immediate Plaid pull
+        outside the standard refresh cadence
+      4. Click "Remove" next to a connected account to disconnect it; existing
+        matched transactions are retained in the audit log but no new transactions
+        will be pulled
+    </plaid_bank_connection>
+  </key_interactions>
+
+  <implementation_steps>
+    <step number="1">
+      <title>Setup Project Foundation and Database</title>
+      <tasks>
+        - Initialize Express server with SQLite database
+        - Set up Claude API client with streaming support
+        - Create database schema with migrations
+        - Implement authentication endpoints
+        - Set up basic CORS and middleware
+        - Create health check endpoint
+      </tasks>
+    </step>
+  </implementation_steps>
+
+  <success_criteria>
+    <functionality>
+      - Streaming chat responses work smoothly
+      - Artifact detection and rendering accurate
+      - Conversation management intuitive and reliable
+      - Project organization clear and useful
+      - Image upload and display working
+      - All CRUD operations functional
+    </functionality>
+
+    <user_experience>
+      - Interface matches claude.ai design language
+      - Responsive on all device sizes
+      - Smooth animations and transitions
+      - Fast response times and minimal lag
+      - Intuitive navigation and workflows
+      - Clear feedback for all actions
+    </user_experience>
+
+    <technical_quality>
+      - Clean, maintainable code structure
+      - Proper error handling throughout
+      - Secure API key management
+      - Optimized database queries
+      - Efficient streaming implementation
+      - Comprehensive testing coverage
+    </technical_quality>
+
+    <design_polish>
+      - Consistent with claude.ai visual design
+      - Beautiful typography and spacing
+      - Smooth animations and micro-interactions
+      - Excellent contrast and accessibility
+      - Professional, polished appearance
+      - Dark mode fully implemented
+    </design_polish>
+  </success_criteria>
+</project_specification>
