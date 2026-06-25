@@ -3,6 +3,14 @@ SESSION 2 COMPLETE — Foundation Construction Finance Platform
 Date: 2026-06-25
 ================================================================================
 
+## ⚠️  BEFORE DOING ANYTHING — READ THE CODING INSTRUCTIONS
+
+  cat prompts/coding_prompt.md
+
+Rules live in CLAUDE.md (auto-loaded) and prompts/coding_prompt.md.
+The short version: pick the first failing test, implement only that,
+verify with browser screenshots, mark it passing, commit, stop.
+
 ## SESSION 2 WHAT WAS ACCOMPLISHED
 
 ### Auth & Dev Mode
