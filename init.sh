@@ -7,6 +7,8 @@ set -euo pipefail
 FRONTEND_PORT=5173
 BACKEND_PORT=3001
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 echo "================================================"
 echo "  Foundation — Construction Finance Platform"
 echo "================================================"
@@ -18,14 +20,14 @@ command -v pnpm >/dev/null 2>&1 || { echo "pnpm not found — installing..."; np
 # ── Frontend ──────────────────────────────────────────────────────────────────
 echo ""
 echo "[1/3] Installing frontend dependencies..."
-cd "$(dirname "$0")/client"
+cd "$SCRIPT_DIR/client"
 pnpm install
 echo "  ✓ Frontend dependencies installed"
 
 # ── Backend ───────────────────────────────────────────────────────────────────
 echo ""
 echo "[2/3] Installing backend dependencies..."
-cd "$(dirname "$0")/server"
+cd "$SCRIPT_DIR/server"
 pnpm install
 echo "  ✓ Backend dependencies installed"
 
@@ -35,12 +37,12 @@ echo "[3/3] Starting backend services..."
 
 if command -v docker >/dev/null 2>&1; then
   echo "  Starting PostgreSQL and Redis via Docker Compose..."
-  cd "$(dirname "$0")"
+  cd "$SCRIPT_DIR"
   docker compose up -d postgres redis 2>/dev/null || docker-compose up -d postgres redis
   echo "  ✓ PostgreSQL (port 5432) and Redis (port 6379) started"
 
   echo "  Running database migrations..."
-  cd "$(dirname "$0")/server"
+  cd "$SCRIPT_DIR/server"
   pnpm run migration:run 2>/dev/null || echo "  (migrations will run automatically on server start)"
 else
   echo "  WARNING: Docker not found. Ensure PostgreSQL (port 5432) and Redis (port 6379)"
@@ -52,13 +54,13 @@ echo ""
 echo "Starting development servers..."
 
 # Backend (NestJS) in the background
-cd "$(dirname "$0")/server"
+cd "$SCRIPT_DIR/server"
 pnpm run start:dev &
 BACKEND_PID=$!
 echo "  ✓ Backend NestJS server starting (PID: $BACKEND_PID)"
 
 # Frontend (Vite) in the background
-cd "$(dirname "$0")/client"
+cd "$SCRIPT_DIR/client"
 VITE_PORT=$FRONTEND_PORT pnpm run dev &
 FRONTEND_PID=$!
 echo "  ✓ Frontend Vite server starting (PID: $FRONTEND_PID)"
