@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Patch, Body, Param, Req, UseGuards } from '@nestjs/common'
+import { Controller, Get, Post, Put, Delete, Patch, Body, Param, Req, Query, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { MilestonesService } from './milestones.service'
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger'
@@ -9,6 +9,11 @@ import { ApiTags, ApiBearerAuth } from '@nestjs/swagger'
 @Controller()
 export class MilestonesController {
   constructor(private readonly svc: MilestonesService) {}
+
+  @Get('milestones')
+  findAll(@Query('status') status?: string) {
+    return this.svc.findAllByStatus(status)
+  }
 
   @Get('phases/:phaseId/milestones')
   findByPhase(@Param('phaseId') phaseId: string) {

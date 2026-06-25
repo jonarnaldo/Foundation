@@ -128,13 +128,57 @@ function AddMilestoneModal({ phases, onClose, onSave }: AddMilestoneModalProps) 
   )
 }
 
+function AddPhaseModal({ onClose, onSave }: { onClose: () => void; onSave: (data: { name: string; description: string; estimatedBudget: number }) => void }) {
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [budget, setBudget] = useState('')
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name.trim()) return
+    onSave({ name: name.trim(), description: description.trim(), estimatedBudget: Math.round(parseFloat(budget || '0') * 100) })
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true" aria-labelledby="add-phase-title">
+      <div className="card max-w-md w-full mx-4 shadow-xl">
+        <div className="flex items-center justify-between mb-4">
+          <h2 id="add-phase-title" className="text-lg font-semibold">Add Phase</h2>
+          <button onClick={onClose} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Close"><XIcon className="w-4 h-4" /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label htmlFor="phase-name" className="block text-sm font-medium mb-1">Phase Name *</label>
+            <input id="phase-name" className="input" value={name} onChange={e => setName(e.target.value)} required placeholder="e.g. Foundation" />
+          </div>
+          <div>
+            <label htmlFor="phase-desc" className="block text-sm font-medium mb-1">Description</label>
+            <input id="phase-desc" className="input" value={description} onChange={e => setDescription(e.target.value)} placeholder="Brief description" />
+          </div>
+          <div>
+            <label htmlFor="phase-budget" className="block text-sm font-medium mb-1">Estimated Budget ($)</label>
+            <input id="phase-budget" className="input" type="number" min="0" step="0.01" value={budget} onChange={e => setBudget(e.target.value)} placeholder="0.00" />
+          </div>
+          <div className="flex gap-3 justify-end pt-2">
+            <button type="button" className="btn-secondary text-sm" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn-primary text-sm">Add Phase</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 export function ScheduleBuilderPage() {
   const { activeProjectId } = useProject()
   const [phases, setPhases] = useState<Phase[]>([])
   const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set())
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showAddPhase, setShowAddPhase] = useState(false)
   const [rtiModal, setRtiModal] = useState<{ milestoneId: string; name: string; amount: number; invoiceNumber: string; phaseId: string } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null)
+  const [editingPhaseName, setEditingPhaseName] = useState('')
 
   useEffect(() => {
     if (!activeProjectId) { setLoading(false); return }
@@ -188,6 +232,40 @@ export function ScheduleBuilderPage() {
     setShowAddModal(false)
   }
 
+  const addPhase = async (data: { name: string; description: string; estimatedBudget: number }) => {
+    if (!activeProjectId) return
+    const phase = await api.post<Phase>(`/projects/${activeProjectId}/phases`, { ...data, milestones: [] })
+    setPhases(prev => [...prev, { ...phase, milestones: [] }])
+    setExpandedPhases(prev => new Set([...prev, phase.id]))
+    setShowAddPhase(false)
+  }
+
+  const deletePhase = async (phaseId: string) => {
+    if (!activeProjectId) return
+    if (!confirm('Delete this phase and all its milestones? This cannot be undone.')) return
+    await api.delete(`/projects/${activeProjectId}/phases/${phaseId}`)
+    setPhases(prev => prev.filter(p => p.id !== phaseId))
+  }
+
+  const startEditPhaseName = (phase: Phase, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditingPhaseId(phase.id)
+    setEditingPhaseName(phase.name)
+  }
+
+  const saveEditPhaseName = async (phaseId: string) => {
+    const name = editingPhaseName.trim()
+    if (!name) { setEditingPhaseId(null); return }
+    await api.put(`/projects/${activeProjectId}/phases/${phaseId}`, { name })
+    setPhases(prev => prev.map(p => p.id === phaseId ? { ...p, name } : p))
+    setEditingPhaseId(null)
+  }
+
+  const handlePhaseNameKeyDown = (e: React.KeyboardEvent, phaseId: string) => {
+    if (e.key === 'Enter') { e.preventDefault(); saveEditPhaseName(phaseId) }
+    if (e.key === 'Escape') { setEditingPhaseId(null) }
+  }
+
   if (!activeProjectId) {
     return <div className="flex items-center justify-center h-64 text-gray-500">Select a project to view the schedule</div>
   }
@@ -200,14 +278,20 @@ export function ScheduleBuilderPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Project Schedule</h1>
-        <button className="btn-primary flex items-center gap-2 text-sm" onClick={() => setShowAddModal(true)} aria-label="Add milestone">
-          <PlusIcon className="w-4 h-4" /> Add Milestone
-        </button>
+        <div className="flex items-center gap-2">
+          <button className="btn-secondary flex items-center gap-2 text-sm" onClick={() => setShowAddPhase(true)} aria-label="Add phase">
+            <PlusIcon className="w-4 h-4" /> Add Phase
+          </button>
+          <button className="btn-primary flex items-center gap-2 text-sm" onClick={() => setShowAddModal(true)} aria-label="Add milestone">
+            <PlusIcon className="w-4 h-4" /> Add Milestone
+          </button>
+        </div>
       </div>
 
       {phases.length === 0 && (
-        <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
-          No phases yet. Add phases via the project settings.
+        <div className="flex flex-col items-center justify-center h-48 text-gray-400 text-sm gap-3">
+          <p>No phases yet. Click &ldquo;Add Phase&rdquo; to get started.</p>
+          <button className="btn-primary text-sm" onClick={() => setShowAddPhase(true)}>Add Phase</button>
         </div>
       )}
 
@@ -216,24 +300,50 @@ export function ScheduleBuilderPage() {
         return (
           <div key={phase.id} className="card p-0 overflow-hidden">
             {/* Phase header */}
-            <button
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#F5F5F5] dark:hover:bg-[#404040] transition-colors duration-150 text-left"
-              onClick={() => togglePhase(phase.id)}
-              aria-expanded={isExpanded}
-              aria-controls={`phase-${phase.id}-milestones`}
-            >
-              <GripVerticalIcon className="w-4 h-4 text-gray-400 flex-shrink-0 cursor-grab" aria-hidden="true" />
-              <span className="font-semibold flex-1">{phase.name}</span>
-              <span
-                className="text-xs px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: `${phase.colorCode}22`, color: phase.colorCode }}
-                aria-label={`Status: ${phase.status.replace('_', ' ')}`}
+            <div className="flex items-center">
+              <button
+                className="flex items-center gap-3 px-4 py-3 hover:bg-[#F5F5F5] dark:hover:bg-[#404040] transition-colors duration-150 text-left flex-1"
+                onClick={() => togglePhase(phase.id)}
+                aria-expanded={isExpanded}
+                aria-controls={`phase-${phase.id}-milestones`}
               >
-                {phase.status.replace('_', ' ')}
-              </span>
-              <span className="text-xs text-gray-500">{phase.completionPercentage.toFixed(0)}%</span>
-              {isExpanded ? <ChevronUpIcon className="w-4 h-4 text-gray-400" /> : <ChevronDownIcon className="w-4 h-4 text-gray-400" />}
-            </button>
+                <GripVerticalIcon className="w-4 h-4 text-gray-400 flex-shrink-0 cursor-grab" aria-hidden="true" />
+                {editingPhaseId === phase.id ? (
+                  <input
+                    className="font-semibold flex-1 bg-transparent border-b border-[#CC785C] outline-none"
+                    value={editingPhaseName}
+                    onChange={e => setEditingPhaseName(e.target.value)}
+                    onBlur={() => saveEditPhaseName(phase.id)}
+                    onKeyDown={e => handlePhaseNameKeyDown(e, phase.id)}
+                    onClick={e => e.stopPropagation()}
+                    autoFocus
+                    aria-label="Edit phase name"
+                  />
+                ) : (
+                  <span
+                    className="font-semibold flex-1 cursor-text"
+                    onDoubleClick={e => startEditPhaseName(phase, e)}
+                    title="Double-click to edit"
+                  >{phase.name}</span>
+                )}
+                <span
+                  className="text-xs px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: `${phase.colorCode}22`, color: phase.colorCode }}
+                  aria-label={`Status: ${phase.status.replace('_', ' ')}`}
+                >
+                  {phase.status.replace('_', ' ')}
+                </span>
+                <span className="text-xs text-gray-500 mr-2">{parseFloat(String(phase.completionPercentage)).toFixed(0)}%</span>
+                {isExpanded ? <ChevronUpIcon className="w-4 h-4 text-gray-400" /> : <ChevronDownIcon className="w-4 h-4 text-gray-400" />}
+              </button>
+              <button
+                className="px-3 py-3 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+                onClick={(e) => { e.stopPropagation(); deletePhase(phase.id) }}
+                aria-label={`Delete phase: ${phase.name}`}
+              >
+                <XIcon className="w-4 h-4" />
+              </button>
+            </div>
 
             {/* Milestones */}
             {isExpanded && (
@@ -283,6 +393,12 @@ export function ScheduleBuilderPage() {
       })}
 
       {/* Modals */}
+      {showAddPhase && (
+        <AddPhaseModal
+          onClose={() => setShowAddPhase(false)}
+          onSave={addPhase}
+        />
+      )}
       {showAddModal && (
         <AddMilestoneModal
           phases={phases}

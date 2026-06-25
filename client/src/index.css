@@ -8,7 +8,16 @@
   }
 
   body {
-    @apply bg-white text-[#1A1A1A] dark:bg-[#1A1A1A] dark:text-[#E5E5E5];
+    @apply bg-white text-[#1A1A1A] dark:bg-[#1A1A1A] dark:text-[#E5E5E5] font-normal leading-relaxed;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold leading-tight;
+  }
+
+  /* Visible focus rings for keyboard accessibility */
+  :focus-visible {
+    @apply outline-none ring-2 ring-[#CC785C] ring-offset-2;
   }
 
   * {

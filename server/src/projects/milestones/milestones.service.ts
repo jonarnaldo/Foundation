@@ -22,6 +22,15 @@ export class MilestonesService {
     private readonly criteriaRepo: Repository<MilestoneCriterion>,
   ) {}
 
+  findAllByStatus(status?: string) {
+    const where = status ? { status: status as MilestoneStatus } : {}
+    return this.repo.find({
+      where,
+      order: { sortOrder: 'ASC' },
+      relations: ['phase'],
+    })
+  }
+
   findByPhase(phaseId: string) {
     return this.repo.find({
       where: { phaseId },

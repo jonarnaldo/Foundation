@@ -3,7 +3,7 @@ import { ValidationPipe } from '@nestjs/common'
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'
 import { AppModule } from './app.module'
 import helmet from 'helmet'
-import compression from 'compression'
+import * as compression from 'compression'
 import { readFileSync } from 'fs'
 
 async function bootstrap() {
