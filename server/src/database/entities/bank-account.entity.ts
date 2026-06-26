@@ -14,6 +14,9 @@ export class BankAccount {
   plaidItemId: string
 
   @Column({ nullable: true })
+  plaidAccountId: string
+
+  @Column({ nullable: true })
   plaidAccessToken: string
 
   @Column({ default: 'First National Bank' })

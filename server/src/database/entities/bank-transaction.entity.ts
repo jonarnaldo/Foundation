@@ -53,8 +53,8 @@ export class BankTransaction {
   @Column({ type: 'date' })
   postedDate: string
 
-  @Column({ type: 'date', nullable: true })
-  authorizedDate: string
+  @Column({ type: 'date', nullable: true, default: null })
+  authorizedDate: string | null
 
   @Column()
   description: string
@@ -62,8 +62,8 @@ export class BankTransaction {
   @Column({ nullable: true })
   memo: string
 
-  @Column({ nullable: true })
-  checkNumber: string
+  @Column({ type: 'varchar', nullable: true, default: null })
+  checkNumber: string | null
 
   @Column({ nullable: true })
   checkImageUrl: string
