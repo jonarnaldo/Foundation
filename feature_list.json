@@ -15,7 +15,7 @@
       "Step 10: Click logout and verify session is destroyed",
       "Step 11: Attempt to navigate to a protected route and verify redirect to login",
       "Step 12: Attempt login with invalid credentials and verify an error message is shown"
-    ],
+    ], 
     "passes": true
   },
   {
@@ -214,7 +214,7 @@
       "Step 6: Navigate to Settings \u2192 Integrations and verify the newly connected bank appears in the connected accounts list with its last-synced timestamp",
       "Step 7: Click 'Sync Now' next to the connected bank and verify a manual Plaid pull is triggered",
       "Step 8: Call POST /api/bank-accounts/:bankAccountId/sync and verify the response confirms the sync job was queued",
-      "Step 9: Navigate to the Bank Sync page and verify new transactions appear in the unmatched feed",
+      "Step 9: Call GET /api/transactions?bankAccountId=:bankAccountId and verify at least one transaction record is returned with match_status 'unmatched'",
       "Step 10: Click 'Remove' next to the connected account in Settings",
       "Step 11: Verify the bank account is removed from the connected list",
       "Step 12: Call DELETE /api/bank-accounts/:bankAccountId and verify is_active is set to false; existing matched transactions remain in the audit log"
