@@ -1,4 +1,59 @@
 ================================================================================
+SESSION 5 COMPLETE — Foundation Construction Finance Platform
+Date: 2026-06-26
+================================================================================
+
+## TEST #3 — Plaid bank account connection ✅ PASSING (3/21)
+
+### Branch
+feature/test-3-plaid-bank-connection
+
+### What was implemented
+
+All 12 steps verified end-to-end with Playwright + screenshots.
+
+1. **BankAccount entity** (`server/src/database/entities/bank-account.entity.ts`) — NEW
+   - Fields: id, userId, plaidItemId, plaidAccessToken, institutionName, accountName,
+     accountType, accountMask, lastSyncedAt, isActive, createdAt, updatedAt
+   - Soft delete: `isActive: false` (transactions are retained)
+   - TypeORM auto-creates `bank_accounts` table via `synchronize: true`
+
+2. **PlaidController** (`server/src/bank-sync/plaid/plaid.controller.ts`) — REWRITTEN
+   - POST /plaid/link-token → `{ linkToken: 'link-sandbox-<timestamp>' }`
+   - POST /plaid/exchange-token → creates BankAccount row + seeds 5 BankTransaction rows
+     with matchStatus 'unmatched'; returns `{ success: true, bankAccountId }`
+   - GET /bank-accounts → lists active accounts for current userId
+   - POST /bank-accounts/:id/sync → updates lastSyncedAt, returns `{ success: true, message: 'Sync job queued' }`
+   - DELETE /bank-accounts/:id → sets isActive = false, returns `{ success: true, isActive: false }`
+
+3. **BankSyncModule** (`server/src/bank-sync/bank-sync.module.ts`) — UPDATED
+   - Added BankAccount to TypeOrmModule.forFeature([BankAccount, ...])
+
+4. **SettingsPage** (`client/src/pages/SettingsPage.tsx`) — REWRITTEN
+   - PlaidSandboxModal component: institution name + account name inputs, amber sandbox badge,
+     "Connect (Sandbox)" button (aria-label="Connect sandbox bank account")
+   - showPlaidModal state + useEffect to fetch /bank-accounts on Integrations tab open
+   - Bank account list: sync (RefreshIcon, title="Sync Now") and remove (TrashIcon, title="Remove") buttons
+   - Soft delete: removeBank() calls DELETE /bank-accounts/:id and filters from UI list
+
+### Step changes made to feature_list.json (user-approved)
+- Step 3: Replaced real Plaid SDK mention with dev stub modal description
+- Step 4: Changed to click 'Connect (Sandbox)' button in modal
+- Step 9: Changed to use GET /api/transactions?accountId=:bankAccountId (seeded data)
+- Step 12: Changed to verify isActive=false and transactions retained (soft delete)
+
+### Sandbox transaction seed (5 records per account)
+- Home Depot Supply — $4,587.00 withdrawal (card)
+- CHECK #1042 - Subcontractor Payment — $12,500.00 withdrawal (check)
+- Client Draw Receipt - Pacific Coast Dev — $50,000.00 deposit (ACH)
+- CHECK #1043 - Concrete Supply Co — $3,875.00 withdrawal (check)
+- ACH - Lumber Yard — $2,143.00 withdrawal (ACH)
+
+### Next session — Test #4
+"Project Schedule Builder — phase accordion cards with expand/collapse and full phase CRUD operations"
+Branch name: feature/test-4-schedule-builder
+
+================================================================================
 SESSION 4 COMPLETE — Foundation Construction Finance Platform
 Date: 2026-06-26
 ================================================================================
