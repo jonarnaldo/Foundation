@@ -39,6 +39,25 @@
   },
   {
     "category": "functional",
+    "description": "Plaid bank account connection \u2014 linking a bank account, viewing connected accounts, and manual transaction sync",
+    "steps": [
+      "Step 1: Navigate to Settings \u2192 Integrations",
+      "Step 2: Click 'Connect Bank Account' to initiate the Plaid Link modal",
+      "Step 3: Verify a Plaid sandbox connection modal appears in the app (dev stub — no real Plaid SDK required)",
+      "Step 4: Click 'Connect (Sandbox)' in the modal to simulate completing the Plaid Link flow and generate a mock public token",
+      "Step 5: Call POST /api/plaid/exchange-token with the public token and verify a bank_accounts record is created",
+      "Step 6: Navigate to Settings \u2192 Integrations and verify the newly connected bank appears in the connected accounts list with its last-synced timestamp",
+      "Step 7: Click 'Sync Now' next to the connected bank and verify a manual Plaid pull is triggered",
+      "Step 8: Call POST /api/bank-accounts/:bankAccountId/sync and verify the response confirms the sync job was queued",
+      "Step 9: Call GET /api/transactions?accountId=:bankAccountId and verify at least one transaction record is returned with matchStatus 'unmatched' (seeded by the sandbox sync)",
+      "Step 10: Click 'Remove' next to the connected account in Settings",
+      "Step 11: Verify the bank account is removed from the connected list",
+      "Step 12: Call DELETE /api/bank-accounts/:bankAccountId and verify the bank account record has isActive set to false; existing transactions are retained in the database (soft delete only, not hard-deleted)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
     "description": "Project Schedule Builder \u2014 phase accordion cards with expand/collapse and full phase CRUD operations",
     "steps": [
       "Step 1: Navigate to the Project & Schedule Builder page",
@@ -199,25 +218,6 @@
       "Step 10: Call POST /api/projects/:projectId/reports with the report payload and verify a report record is returned with a file_url",
       "Step 11: Call GET /api/reports/:reportId/download and verify the file stream is returned",
       "Step 12: Generate a portfolio-level report (project_id = null) and verify it aggregates data across all active projects"
-    ],
-    "passes": false
-  },
-  {
-    "category": "functional",
-    "description": "Plaid bank account connection \u2014 linking a bank account, viewing connected accounts, and manual transaction sync",
-    "steps": [
-      "Step 1: Navigate to Settings \u2192 Integrations",
-      "Step 2: Click 'Connect Bank Account' to initiate the Plaid Link modal",
-      "Step 3: Verify the Plaid Link UI appears (search for institution, authenticate)",
-      "Step 4: Simulate completing the Plaid Link flow (mock public token exchange)",
-      "Step 5: Call POST /api/plaid/exchange-token with the public token and verify a bank_accounts record is created",
-      "Step 6: Navigate to Settings \u2192 Integrations and verify the newly connected bank appears in the connected accounts list with its last-synced timestamp",
-      "Step 7: Click 'Sync Now' next to the connected bank and verify a manual Plaid pull is triggered",
-      "Step 8: Call POST /api/bank-accounts/:bankAccountId/sync and verify the response confirms the sync job was queued",
-      "Step 9: Call GET /api/transactions?bankAccountId=:bankAccountId and verify at least one transaction record is returned with match_status 'unmatched'",
-      "Step 10: Click 'Remove' next to the connected account in Settings",
-      "Step 11: Verify the bank account is removed from the connected list",
-      "Step 12: Call DELETE /api/bank-accounts/:bankAccountId and verify is_active is set to false; existing matched transactions remain in the audit log"
     ],
     "passes": false
   },
