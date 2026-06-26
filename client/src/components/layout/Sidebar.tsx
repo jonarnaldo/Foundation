@@ -24,7 +24,7 @@ interface NewProjectForm {
   estimatedEndDate: string
 }
 
-function EditProjectModal({ project, onClose, onSaved }: { project: Project; onClose: () => void; onSaved: () => void }) {
+function EditProjectModal({ project, onClose, onSaved, onDeleted }: { project: Project; onClose: () => void; onSaved: () => void; onDeleted: () => void }) {
   const [form, setForm] = useState({
     name: project.name || '',
     clientName: project.clientName || '',
@@ -38,6 +38,18 @@ function EditProjectModal({ project, onClose, onSaved }: { project: Project; onC
     status: project.status || 'active',
   })
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  const handleDelete = async () => {
+    if (!window.confirm(`Delete "${project.name}"? This cannot be undone.`)) return
+    setDeleting(true)
+    try {
+      await api.delete(`/projects/${project.id}`)
+      onDeleted()
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -119,6 +131,17 @@ function EditProjectModal({ project, onClose, onSaved }: { project: Project; onC
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2 text-sm font-medium border border-[#E5E5E5] dark:border-[#404040] rounded-lg hover:bg-gray-50 dark:hover:bg-[#404040] transition-colors">Cancel</button>
             <button type="submit" disabled={saving} className="flex-1 px-4 py-2 text-sm font-medium bg-[#CC785C] text-white rounded-lg hover:bg-[#B5674D] disabled:opacity-50 transition-colors">
               {saving ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
+          <div className="pt-1 border-t border-[#E5E5E5] dark:border-[#404040]">
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="w-full px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-50 transition-colors"
+              aria-label="Delete project"
+            >
+              {deleting ? 'Deleting…' : 'Delete Project'}
             </button>
           </div>
         </form>
@@ -310,6 +333,12 @@ export function Sidebar({ open, onToggle }: SidebarProps) {
             onSaved={async () => {
               await refreshProjects()
               setShowEditProject(false)
+            }}
+            onDeleted={async () => {
+              setShowEditProject(false)
+              setActiveProjectId(null)
+              await refreshProjects()
+              navigate('/dashboard')
             }}
           />
         ) : null

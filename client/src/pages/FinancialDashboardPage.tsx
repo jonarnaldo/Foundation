@@ -123,14 +123,23 @@ const severityClasses: Record<string, string> = {
   critical: 'border-red-400 bg-red-50 dark:bg-red-950 text-red-800 dark:text-red-200',
 }
 
+const statusBadgeConfig: Record<string, { label: string; className: string }> = {
+  active:    { label: 'Active',     className: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' },
+  on_hold:   { label: 'On Hold',   className: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' },
+  completed: { label: 'Completed', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' },
+  cancelled: { label: 'Cancelled', className: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' },
+}
+
 export function FinancialDashboardPage() {
-  const { activeProjectId, isPortfolioView } = useProject()
+  const { activeProjectId, isPortfolioView, refreshVersion, projects } = useProject()
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   const [interval, setInterval_] = useState<'day' | 'week' | 'month'>('month')
   const [loading, setLoading] = useState(true)
   const [showExportModal, setShowExportModal] = useState(false)
+
+  const activeProject = projects.find(p => p.id === activeProjectId)
 
   useEffect(() => {
     setLoading(true)
@@ -140,7 +149,7 @@ export function FinancialDashboardPage() {
         ? `/projects/${activeProjectId}/dashboard`
         : null
 
-    if (!path) { setLoading(false); return }
+    if (!path) { setLoading(false); setMetrics(null); setAlerts([]); setSnapshots([]); return }
 
     Promise.all([
       api.get<DashboardMetrics>(path),
@@ -154,7 +163,7 @@ export function FinancialDashboardPage() {
       .then(([m, a, s]) => { setMetrics(m); setAlerts(a); setSnapshots(s) })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [activeProjectId, isPortfolioView, interval])
+  }, [activeProjectId, isPortfolioView, interval, refreshVersion])
 
   const dismissAlert = async (id: string) => {
     await api.patch(`/alerts/${id}/dismiss`)
@@ -195,7 +204,21 @@ export function FinancialDashboardPage() {
     <div className="space-y-6">
       {/* Page header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Financial Dashboard</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-semibold">Financial Dashboard</h1>
+          {activeProject && (() => {
+            const cfg = statusBadgeConfig[activeProject.status] ?? { label: activeProject.status, className: 'bg-gray-100 text-gray-700' }
+            return (
+              <span
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cfg.className}`}
+                aria-label={`Project status: ${cfg.label}`}
+                data-testid="project-status-badge"
+              >
+                {cfg.label}
+              </span>
+            )
+          })()}
+        </div>
         <button
           className="btn-secondary text-sm flex items-center gap-2"
           onClick={() => setShowExportModal(true)}
