@@ -35,7 +35,7 @@
       "Step 11: Set project status to 'on_hold' and verify the status badge updates",
       "Step 12: Delete the project and verify it no longer appears in the dropdown or portfolio view"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

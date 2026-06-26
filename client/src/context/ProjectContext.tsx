@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
 import { api } from '../lib/api'
 
 export interface Project {
@@ -24,6 +24,7 @@ interface ProjectContextValue {
   setIsPortfolioView: (v: boolean) => void
   refreshProjects: () => Promise<void>
   loading: boolean
+  refreshVersion: number
 }
 
 const ProjectContext = createContext<ProjectContextValue | null>(null)
@@ -35,6 +36,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([])
   const [isPortfolioView, setIsPortfolioView] = useState(false)
   const [loading, setLoading] = useState(true)
+  const refreshVersionRef = useRef(0)
+  const [refreshVersion, setRefreshVersion] = useState(0)
 
   const refreshProjects = useCallback(async () => {
     try {
@@ -47,11 +50,16 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
           setActiveProjectId(data[0].id)
           localStorage.setItem('activeProjectId', data[0].id)
         }
+      } else {
+        setActiveProjectId(null)
+        localStorage.removeItem('activeProjectId')
       }
     } catch {
       // ignore — backend may not be ready
     } finally {
       setLoading(false)
+      refreshVersionRef.current += 1
+      setRefreshVersion(refreshVersionRef.current)
     }
   }, [])
 
@@ -76,6 +84,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         setIsPortfolioView,
         refreshProjects,
         loading,
+        refreshVersion,
       }}
     >
       {children}

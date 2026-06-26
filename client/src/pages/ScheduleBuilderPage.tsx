@@ -170,7 +170,8 @@ function AddPhaseModal({ onClose, onSave }: { onClose: () => void; onSave: (data
 }
 
 export function ScheduleBuilderPage() {
-  const { activeProjectId } = useProject()
+  const { activeProjectId, projects } = useProject()
+  const activeProject = projects.find(p => p.id === activeProjectId)
   const [phases, setPhases] = useState<Phase[]>([])
   const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set())
   const [showAddModal, setShowAddModal] = useState(false)
@@ -277,7 +278,7 @@ export function ScheduleBuilderPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Project Schedule</h1>
+        <h1 className="text-2xl font-semibold">{activeProject ? activeProject.name : 'Project Schedule'}</h1>
         <div className="flex items-center gap-2">
           <button className="btn-secondary flex items-center gap-2 text-sm" onClick={() => setShowAddPhase(true)} aria-label="Add phase">
             <PlusIcon className="w-4 h-4" /> Add Phase

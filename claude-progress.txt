@@ -1,4 +1,70 @@
 ================================================================================
+SESSION 4 COMPLETE — Foundation Construction Finance Platform
+Date: 2026-06-26
+================================================================================
+
+## TEST #2 — Project creation and management ✅ PASSING (2/21)
+
+### Branch
+feature/test-2-project-creation
+
+### What was implemented / fixed
+
+All 12 steps verified end-to-end with Playwright + screenshots.
+
+Most of the scaffolding existed from Session 2 (New Project modal, Edit Project
+modal, project CRUD backend). Three gaps were fixed this session:
+
+1. **ScheduleBuilderPage — project name in h1**
+   - Was: hardcoded "Project Schedule"
+   - Now: shows `activeProject.name` from ProjectContext
+
+2. **Status badge in Financial Dashboard**
+   - Added `statusBadgeConfig` map (active/on_hold/completed/cancelled)
+   - Badge renders next to "Financial Dashboard" h1 using `data-testid="project-status-badge"`
+   - Pulls `activeProject` from `projects` list in context
+
+3. **Delete Project button in EditProjectModal**
+   - New "Delete Project" red button at bottom of Edit modal
+   - Calls `window.confirm()` then `DELETE /api/projects/:id`
+   - `onDeleted` prop: closes modal, sets activeProjectId to null, refreshes projects, navigates to /dashboard
+
+4. **Dashboard re-fetch after project edit (Step 9)**
+   - Added `refreshVersion` counter to ProjectContext (increments on every `refreshProjects()` call)
+   - Added `refreshVersion` to FinancialDashboardPage's useEffect deps
+   - Ensures dashboard metrics re-fetch when project is edited
+
+5. **Dashboard empty state on delete**
+   - When `path` is null (no active project), now resets metrics/alerts/snapshots to empty state
+   - Was showing stale data after deletion
+
+### API summary response (Step 10)
+```json
+{
+  "id": "...",
+  "name": "Harbor View Condominiums",
+  "status": "active",
+  "contractValue": 500000000,
+  "phaseCount": 0,
+  "lastActivity": "2026-06-26T..."
+}
+```
+
+### Dev environment notes (no Docker)
+- Docker not available in this container — used locally installed PostgreSQL 18 on port 5433
+- `server/.env` DATABASE_URL points to localhost:5433 (not 5432)
+- Start Postgres: `/usr/lib/postgresql/18/bin/pg_ctl -D /tmp/pgdata -l /tmp/pgdata/postgres.log -o "-k /tmp/pgsocket -p 5433" start`
+- Start Redis: `sudo service redis-server start`
+- Start backend: `cd server && npx ts-node -r tsconfig-paths/register src/main.ts`
+- Start frontend: `cd client && npx vite --port 5173`
+- pnpm v9.15.4 installed globally (Node 20 compatible): `npm install -g pnpm@9.15.4`
+- Playwright + Chromium deps installed via `npx playwright install-deps chromium`
+
+### Next session — Test #3
+"Project Schedule Builder — phase accordion cards with expand/collapse and full phase CRUD operations"
+Branch name: feature/test-3-schedule-builder
+
+================================================================================
 SESSION 3 COMPLETE — Foundation Construction Finance Platform
 Date: 2026-06-25
 ================================================================================
