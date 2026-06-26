@@ -60,6 +60,32 @@ git checkout -b feature/test-N-short-description
 Do not write any code until you are on a feature branch. If `git status`
 shows uncommitted changes on main, commit or stash them first.
 
+**After creating the branch, write a short feature brief in your response:**
+
+## Description
+Describe what the feature does from the user's
+perspective and why it matters in the context of the app. Name the key UI
+surfaces and API endpoints that will be touched.
+
+## Scope and approach
+Describe what you will build this session
+(backend changes, frontend changes, any new entities or routes), and what you
+are explicitly leaving out. Call out any ambiguities or assumptions.
+
+**Then list the manual test steps you will walk through to verify it:**
+**Be sure to include prerequisite steps to stand up the app and any additional set up as required to test:**
+
+```
+## Manual verification checklist:
+[ ] Step 1: <concrete UI action or API call>
+[ ] Step 2: <expected result to confirm>
+...
+[ ] Step N: <final state that proves the feature is complete>
+```
+
+This checklist must map 1-to-1 with the steps in `feature_list.json` for the
+target test. Do not start coding until this brief is written.
+
 ---
 
 ### STEP 2: GET YOUR BEARINGS
