@@ -10,7 +10,7 @@
     "migration:generate": "typeorm migration:generate",
     "migration:run": "typeorm migration:run -d src/database/data-source.ts",
     "migration:revert": "typeorm migration:revert -d src/database/data-source.ts",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
     "lint": "eslint src --ext .ts"
   },

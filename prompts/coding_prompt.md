@@ -160,11 +160,105 @@ If the answer is "gold-plating," skip it.
 Implementation order:
 1. Backend endpoint(s) needed for the test steps
 2. Frontend UI needed for the test steps
-3. Nothing else
+3. Automated tests for what you just built (see below)
+4. Nothing else
 
 ---
 
-### STEP 6: VERIFY THROUGH THE BROWSER (NOT CURL)
+### STEP 6: WRITE AUTOMATED TESTS
+
+**Tests are not optional. A feature is not complete without them.**
+
+#### Backend — Jest (`server/src/**/*.spec.ts`)
+
+Write a `.spec.ts` file alongside each new service or controller. Use
+`@nestjs/testing` with a real in-memory SQLite database or mocked
+repositories. Test each endpoint and service method that was added or
+changed.
+
+```typescript
+// server/src/bank-sync/plaid/plaid.controller.spec.ts
+import { Test } from '@nestjs/testing'
+import { getRepositoryToken } from '@nestjs/typeorm'
+import { PlaidController } from './plaid.controller'
+import { BankAccount } from '../../database/entities/bank-account.entity'
+import { BankTransaction } from '../../database/entities/bank-transaction.entity'
+
+describe('PlaidController', () => {
+  let controller: PlaidController
+  const mockAccountRepo = { create: jest.fn(), save: jest.fn(), find: jest.fn(), update: jest.fn() }
+  const mockTxRepo = { create: jest.fn(), save: jest.fn(), find: jest.fn() }
+
+  beforeEach(async () => {
+    const module = await Test.createTestingModule({
+      controllers: [PlaidController],
+      providers: [
+        { provide: getRepositoryToken(BankAccount), useValue: mockAccountRepo },
+        { provide: getRepositoryToken(BankTransaction), useValue: mockTxRepo },
+      ],
+    }).compile()
+    controller = module.get(PlaidController)
+  })
+
+  it('exchange-token creates account and seeds transactions', async () => {
+    const account = { id: 'acc-1', userId: 'dev-user-001' }
+    mockAccountRepo.create.mockReturnValue(account)
+    mockAccountRepo.save.mockResolvedValue(account)
+    mockTxRepo.create.mockImplementation(d => d)
+    mockTxRepo.save.mockResolvedValue([])
+
+    const result = await controller.exchangeToken(
+      { user: { sub: 'dev-user-001' } },
+      { publicToken: 'public-sandbox-test' },
+    )
+    expect(result.success).toBe(true)
+    expect(mockTxRepo.save).toHaveBeenCalledWith(expect.arrayContaining([
+      expect.objectContaining({ matchStatus: 'unmatched' }),
+    ]))
+  })
+})
+```
+
+Run after writing: `cd server && npx jest --testPathPattern=<your-spec-file>`
+
+#### Frontend — Vitest + Testing Library (`client/src/**/*.test.tsx`)
+
+Write a `.test.tsx` file for each new page or component. Mock `api` calls
+with `vi.mock`. Test that key elements render and that user interactions
+trigger the right API calls.
+
+```typescript
+// client/src/pages/SettingsPage.test.tsx
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
+import { SettingsPage } from './SettingsPage'
+
+vi.mock('../lib/api', () => ({
+  api: {
+    get: vi.fn().mockResolvedValue([]),
+    post: vi.fn().mockResolvedValue({ success: true, bankAccountId: 'acc-1' }),
+    delete: vi.fn().mockResolvedValue({ success: true }),
+  },
+}))
+
+describe('SettingsPage', () => {
+  it('opens the Plaid sandbox modal when Connect Bank Account is clicked', async () => {
+    render(<SettingsPage />)
+    fireEvent.click(screen.getByText('Integrations'))
+    fireEvent.click(screen.getByText('Connect Bank Account'))
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
+    expect(screen.getByText('Connect (Sandbox)')).toBeInTheDocument()
+  })
+})
+```
+
+Run after writing: `cd client && npx vitest run --reporter=verbose`
+
+**Do not mark a test passing if `jest` or `vitest` exits non-zero.**
+
+---
+
+### STEP 7: VERIFY THROUGH THE BROWSER (NOT CURL)
 
 **You must verify through the actual UI. Code that compiles is not verified.**
 
@@ -188,7 +282,7 @@ Save screenshots to `verification/test-N-step-M.png`.
 
 ---
 
-### STEP 7: UPDATE feature_list.json
+### STEP 8: UPDATE feature_list.json
 
 **Only change the `"passes"` field. Nothing else.**
 
@@ -203,7 +297,7 @@ Never:
 
 ---
 
-### STEP 8: COMMIT AND OPEN A PULL REQUEST
+### STEP 9: COMMIT AND OPEN A PULL REQUEST
 
 ```bash
 git add -A
@@ -211,6 +305,10 @@ git commit -m "Implement [feature name] — test #N verified end-to-end
 
 Steps verified:
 - [list the test steps you walked through]
+
+Tests added:
+- server/src/.../foo.spec.ts
+- client/src/.../Bar.test.tsx
 
 Screenshots: verification/test-N-*.png
 feature_list.json: test #N marked passing
@@ -229,7 +327,7 @@ Do not merge the PR yourself. Leave it open for review.
 
 ---
 
-### STEP 9: UPDATE PROGRESS NOTES
+### STEP 10: UPDATE PROGRESS NOTES
 
 Update `claude-progress.txt`:
 
@@ -241,16 +339,17 @@ Update `claude-progress.txt`:
 
 ---
 
-### STEP 10: END SESSION CLEANLY
+### STEP 11: END SESSION CLEANLY
 
 Before context fills up:
 
 1. All code committed and pushed to feature branch
 2. PR opened against main
 3. claude-progress.txt updated
-4. feature_list.json updated
-5. No uncommitted changes (`git status` is clean)
-6. App still loads and runs
+4. feature_list.json updated (`"passes": true`)
+5. Automated tests written and passing (`cd server && npx jest --passWithNoTests` and `cd client && npx vitest run --passWithNoTests`)
+6. No uncommitted changes (`git status` is clean)
+7. App still loads and runs
 
 ---
 
