@@ -1,4 +1,30 @@
 ================================================================================
+SESSION 6 COMPLETE — Foundation Construction Finance Platform
+Date: 2026-06-26
+================================================================================
+
+## TEST #3 — Plaid bank account connection ✅ PASSING (3/21) — REAL SDK
+
+### Branch
+feature/test-3-plaid-bank-connection
+
+### Session 6 additions (on top of session 5 stub implementation)
+- Replaced mock PlaidSandboxModal with real `react-plaid-link` v4 (usePlaidLink hook)
+- Replaced stub plaid.controller.ts with real Plaid Node SDK v42:
+  - POST /plaid/link-token → real linkTokenCreate call
+  - POST /plaid/exchange-token → itemPublicTokenExchange → accountsGet → syncTransactions
+  - POST /bank-accounts/:id/sync → transactionsGet (90 days), upsert by plaidTransactionId
+- Added plaidAccountId field to BankAccount entity
+- Fixed TypeORM nullable union type errors on BankTransaction (authorizedDate, checkNumber)
+- Fixed pnpm-workspace.yaml in both client/ and server/ (packages: [] + boolean allowBuilds)
+- All 12 steps verified end-to-end with Playwright — real sandbox token created,
+  19 real transactions synced (incl. "Uber" $6.33), sync + soft-delete confirmed
+- Committed as: 33559aa
+
+### Next session
+Start test #4 (next "passes": false in feature_list.json)
+
+================================================================================
 SESSION 5 COMPLETE — Foundation Construction Finance Platform
 Date: 2026-06-26
 ================================================================================
