@@ -26,13 +26,35 @@
 ./init.sh
 ```
 
-The script will:
-1. Install frontend and backend dependencies via pnpm
-2. Start PostgreSQL and Redis via Docker Compose (if Docker is available)
-3. Run database migrations
-4. Start the NestJS backend on port 3001 and the Vite frontend on port 5173
+**Access the app:** http://localhost:5173 | API docs: http://localhost:3001/api/docs
 
-**Access the app:** http://localhost:5173
+### Manual Start (step by step)
+
+**1. Install dependencies**
+```bash
+cd client && pnpm install
+cd ../server && pnpm install
+```
+
+**2. Start PostgreSQL and Redis**
+```bash
+docker compose up -d postgres redis
+```
+
+**3. Run database migrations**
+```bash
+cd server && pnpm run migration:run
+```
+
+**4. Start the backend (NestJS on port 3001)**
+```bash
+cd server && pnpm run start:dev
+```
+
+**5. Start the frontend (Vite on port 5173) — in a separate terminal**
+```bash
+cd client && pnpm run dev
+```
 
 ## Project Structure
 
