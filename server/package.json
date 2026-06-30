@@ -7,9 +7,9 @@
     "start": "node dist/main",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "migration:generate": "typeorm migration:generate",
-    "migration:run": "typeorm migration:run -d src/database/data-source.ts",
-    "migration:revert": "typeorm migration:revert -d src/database/data-source.ts",
+    "migration:generate": "ts-node node_modules/typeorm/cli migration:generate",
+    "migration:run": "ts-node node_modules/typeorm/cli migration:run -d src/database/data-source.ts",
+    "migration:revert": "ts-node node_modules/typeorm/cli migration:revert -d src/database/data-source.ts",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
     "lint": "eslint src --ext .ts"
