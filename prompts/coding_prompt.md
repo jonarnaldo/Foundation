@@ -52,9 +52,9 @@ git checkout main
 git status   # must be clean before branching
 
 # Create and switch to a branch named after the feature you're implementing
-# Use the format: feature/test-N-short-description
-# Example: feature/test-2-project-creation
-git checkout -b feature/test-N-short-description
+# Use the format: feature/short-description
+# Example: feature/project-creation
+git checkout -b feature/hort-description
 ```
 
 Do not write any code until you are on a feature branch. If `git status`
