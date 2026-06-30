@@ -11,3 +11,5 @@ postgres_data/
 redis_data/
 .claude/settings.local.json
 .claude/memory
+session-results/
+verification/
