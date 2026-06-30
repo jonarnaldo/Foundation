@@ -165,7 +165,6 @@ claude -p "Begin this session per your instructions." \
   --max-turns "$MAX_TURNS" \
   --max-budget-usd "$MAX_BUDGET_USD" \
   --output-format json \
-  --directory "$PROJECT_DIR" \
   > "$RESULT_FILE"
 
 echo "== Session complete. Output saved to $RESULT_FILE =="
