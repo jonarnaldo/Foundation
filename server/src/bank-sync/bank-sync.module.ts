@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
+import { BankAccount } from '../database/entities/bank-account.entity'
 import { BankTransaction } from '../database/entities/bank-transaction.entity'
 import { TransactionMatch } from '../database/entities/transaction-match.entity'
 import { ReconciliationAuditLog } from '../database/entities/reconciliation-audit-log.entity'
@@ -12,7 +13,7 @@ import { PlaidController } from './plaid/plaid.controller'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([BankTransaction, TransactionMatch, ReconciliationAuditLog, Milestone]),
+    TypeOrmModule.forFeature([BankAccount, BankTransaction, TransactionMatch, ReconciliationAuditLog, Milestone]),
   ],
   controllers: [TransactionsController, ReconciliationController, PlaidController],
   providers: [TransactionsService, ReconciliationService],

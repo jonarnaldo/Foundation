@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { usePlaidLink } from 'react-plaid-link'
 import { api } from '../lib/api'
 import { RefreshIcon, LinkIcon, TrashIcon } from '../components/ui/Icons'
 
@@ -9,14 +10,56 @@ interface BankAccount {
   institutionName: string
   accountName: string
   accountMask: string
-  lastSyncedAt: string
+  lastSyncedAt: string | null
   isActive: boolean
+}
+
+function ConnectBankButton({ onConnected }: { onConnected: (acct: BankAccount) => void }) {
+  const [linkToken, setLinkToken] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    api.post<{ linkToken: string }>('/plaid/link-token', {}).then(r => setLinkToken(r.linkToken)).catch(() => {})
+  }, [])
+
+  const onSuccess = useCallback(async (publicToken: string) => {
+    setLoading(true)
+    try {
+      const result = await api.post<{ success: boolean; bankAccountId: string }>('/plaid/exchange-token', { publicToken })
+      if (result.success) {
+        const accounts = await api.get<BankAccount[]>('/bank-accounts')
+        const created = accounts.find(a => a.id === result.bankAccountId)
+        if (created) onConnected(created)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [onConnected])
+
+  const { open, ready } = usePlaidLink({ token: linkToken, onSuccess })
+
+  return (
+    <button
+      className="btn-primary text-sm"
+      onClick={() => open()}
+      disabled={!ready || loading}
+      aria-label="Connect Bank Account"
+    >
+      {loading ? 'Connecting…' : 'Connect Bank Account'}
+    </button>
+  )
 }
 
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('account')
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
   const [syncing, setSyncing] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (activeTab === 'integrations') {
+      api.get<BankAccount[]>('/bank-accounts').then(setBankAccounts).catch(() => {})
+    }
+  }, [activeTab])
 
   const connectQuickBooks = async () => {
     const { url } = await api.post<{ url: string }>('/integrations/quickbooks/connect', {})
@@ -31,13 +74,6 @@ export function SettingsPage() {
     await api.post('/integrations/quickbooks/sync', {})
   }
 
-  const connectBank = async () => {
-    const { linkToken } = await api.post<{ linkToken: string }>('/plaid/link-token', {})
-    // In production this would open the Plaid Link SDK with the token
-    console.info('Plaid Link token received:', linkToken)
-    alert('Plaid Link flow would open here. Integrate @plaid/react-plaid-link with this token.')
-  }
-
   const syncBank = async (id: string) => {
     setSyncing(id)
     await api.post(`/bank-accounts/${id}/sync`, {}).finally(() => setSyncing(null))
@@ -45,7 +81,7 @@ export function SettingsPage() {
   }
 
   const removeBank = async (id: string) => {
-    if (!confirm('Remove this bank account? Existing matched transactions will be retained.')) return
+    if (!confirm('Remove this bank account? Existing transactions will be retained.')) return
     await api.delete(`/bank-accounts/${id}`)
     setBankAccounts(prev => prev.filter(a => a.id !== id))
   }
@@ -128,33 +164,35 @@ export function SettingsPage() {
           <div className="card space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold">Bank Accounts</h2>
-              <button className="btn-primary text-sm" onClick={connectBank}>
-                Connect Bank Account
-              </button>
+              <ConnectBankButton onConnected={acct => setBankAccounts(prev => [acct, ...prev])} />
             </div>
             {bankAccounts.length === 0 ? (
               <p className="text-sm text-gray-500">No bank accounts connected yet.</p>
             ) : (
               <div className="space-y-2">
                 {bankAccounts.map(acct => (
-                  <div key={acct.id} className="flex items-center justify-between text-sm p-2 rounded border border-[#E5E5E5] dark:border-[#404040]">
+                  <div key={acct.id} className="flex items-center justify-between text-sm p-3 rounded-lg border border-[#E5E5E5] dark:border-[#404040]">
                     <div>
                       <p className="font-medium">{acct.institutionName} — {acct.accountName} ···{acct.accountMask}</p>
-                      <p className="text-xs text-gray-500">Last synced: {new Date(acct.lastSyncedAt).toLocaleString()}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Last synced: {acct.lastSyncedAt ? new Date(acct.lastSyncedAt).toLocaleString() : 'Never'}
+                      </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1">
                       <button
-                        className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                        className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         onClick={() => syncBank(acct.id)}
                         disabled={syncing === acct.id}
                         aria-label={`Sync ${acct.accountName}`}
+                        title="Sync Now"
                       >
                         <RefreshIcon className={`w-4 h-4 ${syncing === acct.id ? 'animate-spin' : ''}`} />
                       </button>
                       <button
-                        className="p-1.5 rounded hover:bg-red-100 dark:hover:bg-red-900 text-red-500"
+                        className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900 text-red-500 transition-colors"
                         onClick={() => removeBank(acct.id)}
                         aria-label={`Remove ${acct.accountName}`}
+                        title="Remove"
                       >
                         <TrashIcon className="w-4 h-4" />
                       </button>
@@ -187,6 +225,7 @@ export function SettingsPage() {
           </div>
         </div>
       )}
+
     </div>
   )
 }
