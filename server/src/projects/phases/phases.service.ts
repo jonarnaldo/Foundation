@@ -19,10 +19,12 @@ export class PhasesService {
       order: { sortOrder: 'ASC' },
       relations: ['milestones'],
     })
-    return phases.map(p => ({
-      ...p,
-      milestones: (p.milestones || []).sort((a, b) => a.sortOrder - b.sortOrder),
-    }))
+    return phases.map(p => {
+      const milestones = (p.milestones || []).sort((a, b) => a.sortOrder - b.sortOrder)
+      const paidCount = milestones.filter(m => m.status === MilestoneStatus.PAID).length
+      const completionPercentage = milestones.length > 0 ? (paidCount / milestones.length) * 100 : 0
+      return { ...p, milestones, completionPercentage }
+    })
   }
 
   async create(projectId: string, dto: Partial<ProjectPhase>) {
