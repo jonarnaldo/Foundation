@@ -1,4 +1,4 @@
 packages: []
 allowBuilds:
-  '@nestjs/core': true
-  msgpackr-extract: true
+  '@nestjs/core': false
+  msgpackr-extract: false
