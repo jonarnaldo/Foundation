@@ -15,7 +15,7 @@
       "Step 10: Click logout and verify session is destroyed",
       "Step 11: Attempt to navigate to a protected route and verify redirect to login",
       "Step 12: Attempt login with invalid credentials and verify an error message is shown"
-    ], 
+    ],
     "passes": true
   },
   {
@@ -43,7 +43,7 @@
     "steps": [
       "Step 1: Navigate to Settings \u2192 Integrations",
       "Step 2: Click 'Connect Bank Account' to initiate the Plaid Link modal",
-      "Step 3: Verify a Plaid sandbox connection modal appears in the app (dev stub — no real Plaid SDK required)",
+      "Step 3: Verify a Plaid sandbox connection modal appears in the app (dev stub \u2014 no real Plaid SDK required)",
       "Step 4: Click 'Connect (Sandbox)' in the modal to simulate completing the Plaid Link flow and generate a mock public token",
       "Step 5: Call POST /api/plaid/exchange-token with the public token and verify a bank_accounts record is created",
       "Step 6: Navigate to Settings \u2192 Integrations and verify the newly connected bank appears in the connected accounts list with its last-synced timestamp",
@@ -190,7 +190,7 @@
       "Step 10: Delete a phase and verify all child milestones are removed",
       "Step 11: Call GET /api/projects/:projectId/phases and verify ordered phase list with completion percentages"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

@@ -328,11 +328,16 @@ export function ScheduleBuilderPage() {
                   >{phase.name}</span>
                 )}
                 <span
-                  className="text-xs px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: `${phase.colorCode}22`, color: phase.colorCode }}
+                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    phase.status === 'not_started'
+                      ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                      : phase.status === 'in_progress'
+                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                        : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200'
+                  }`}
                   aria-label={`Status: ${phase.status.replace('_', ' ')}`}
                 >
-                  {phase.status.replace('_', ' ')}
+                  {phase.status === 'not_started' ? 'Not Started' : phase.status === 'in_progress' ? 'In Progress' : 'Completed'}
                 </span>
                 <span className="text-xs text-gray-500 mr-2">{parseFloat(String(phase.completionPercentage)).toFixed(0)}%</span>
                 {isExpanded ? <ChevronUpIcon className="w-4 h-4 text-gray-400" /> : <ChevronDownIcon className="w-4 h-4 text-gray-400" />}
