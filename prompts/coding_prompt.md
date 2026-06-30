@@ -116,8 +116,8 @@ chmod +x init.sh && ./init.sh
 This is your baseline. If the app won't load, fix that first.
 
 ```
-puppeteer_navigate  →  http://localhost:5173
-puppeteer_screenshot  →  save as verification/00-baseline.png
+browser_navigate  →  http://localhost:5173
+browser_take_screenshot  →  save as verification/00-baseline.png
 ```
 
 If you cannot take a screenshot, document why and do not proceed to new
@@ -263,11 +263,17 @@ Run after writing: `cd client && npx vitest run --reporter=verbose`
 Walk through every step in the target test's `steps` array:
 
 ```
-puppeteer_navigate  →  go to the relevant page
-puppeteer_screenshot  →  capture before interacting
-puppeteer_click / puppeteer_fill  →  perform each step
-puppeteer_screenshot  →  capture after each significant action
+browser_navigate  →  go to the relevant page
+browser_take_screenshot  →  capture before interacting
+browser_snapshot  →  get element refs for the elements you need to act on
+browser_click / browser_type  →  perform each step (using refs from the snapshot)
+browser_take_screenshot  →  capture after each significant action
 ```
+
+Playwright MCP interacts with elements by reference, not CSS selector: call
+`browser_snapshot` to get the page's accessibility tree, find the element you
+need in that tree, then pass its `ref` to `browser_click` or `browser_type`.
+Take a fresh snapshot any time the page changes meaningfully.
 
 Check in browser DevTools after each major action:
 - No console errors
@@ -354,15 +360,26 @@ Before context fills up:
 ## TESTING TOOLS
 
 ```
-puppeteer_navigate(url)         — open a URL in the browser
-puppeteer_screenshot(path)      — capture a screenshot
-puppeteer_click(selector)       — click an element
-puppeteer_fill(selector, value) — type into an input
-puppeteer_evaluate(js)          — run JS (debugging only, not for shortcuts)
+browser_navigate(url)                  — open a URL in the browser
+browser_snapshot()                     — get an accessibility-tree snapshot of
+                                          the current page, including element
+                                          refs to act on
+browser_take_screenshot(filename)      — capture a screenshot
+browser_click(element, ref)            — click an element (ref from snapshot)
+browser_type(element, ref, text)       — type into an input (ref from snapshot)
+browser_wait_for(text | time)          — wait for text to appear or a duration
+browser_run_code_unsafe(code)          — run arbitrary JS (debugging only, not
+                                          for shortcuts — RCE-equivalent, use
+                                          sparingly and never to fake an
+                                          interaction or read state that
+                                          should be visible in the UI)
 ```
 
-Test like a human: click, type, scroll. Do not use `puppeteer_evaluate` to
-fake interactions or read state that should be visible in the UI.
+Test like a human: take a snapshot, click, type, scroll. Always get a fresh
+`browser_snapshot` before clicking or typing if the page has changed since
+your last snapshot — refs go stale across navigations and re-renders. Do not
+use `browser_run_code_unsafe` to fake interactions or read state that should
+be visible in the UI.
 
 ---
 
