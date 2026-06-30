@@ -58,6 +58,124 @@
   },
   {
     "category": "functional",
+    "description": "pending_checks database schema and CRUD API \u2014 new table linking a photographed check to a project milestone, with status lifecycle and basic REST endpoints",
+    "steps": [
+      "Step 1: Verify the database has a pending_checks table with columns: id, project_id (FK \u2192 projects), milestone_id (FK \u2192 milestones), check_number (nullable string), amount_cents (integer), payor_name (string), memo_line (nullable string), status (enum: pending, completed, needs_review), plaid_transaction_id (nullable string), created_by (FK \u2192 users), created_at, updated_at",
+      "Step 2: Call POST /api/checks with { projectId, milestoneId, checkNumber, amountCents, payorName, memoLine } and verify a 201 response containing the new record with status 'pending'",
+      "Step 3: Call GET /api/checks?projectId=:projectId and verify the response array includes the newly created check",
+      "Step 4: Call GET /api/checks/:checkId and verify all fields are returned including linked project and milestone IDs",
+      "Step 5: Call PATCH /api/checks/:checkId to update memo_line and verify the change is reflected in the response",
+      "Step 6: Call DELETE /api/checks/:checkId and verify the record is removed or soft-deleted; subsequent GET returns 404 or a deleted flag",
+      "Step 7: Call POST /api/checks with a non-existent milestoneId and verify a 404 error response",
+      "Step 8: Call POST /api/checks with a negative amountCents value and verify a 400 validation error is returned",
+      "Step 9: Call GET /api/checks?projectId=:projectId&status=pending and verify only records with status 'pending' are returned"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Veryfi OCR API integration \u2014 backend endpoint that accepts a check image and returns normalized extracted fields via the Veryfi Lens API",
+    "steps": [
+      "Step 1: Call POST /api/checks/ocr with a multipart form-data payload containing a sample check image",
+      "Step 2: Verify the response contains extracted fields: check_number, amount_cents (integer in minor units), payor_name, and memo_line",
+      "Step 3: Verify the endpoint responds within a reasonable timeout (e.g., under 15 seconds) and that a loading or processing state is observable",
+      "Step 4: Verify the raw Veryfi API response is NOT included in the client-facing response \u2014 only normalized fields are returned",
+      "Step 5: Call POST /api/checks/ocr with an unreadable or blank image and verify a 422 Unprocessable Entity response with a descriptive error message",
+      "Step 6: Call POST /api/checks/ocr with a non-image file (e.g., a .txt file) and verify a 400 Bad Request response",
+      "Step 7: Confirm via code review that the Veryfi API key is loaded from an environment variable and is not hardcoded in source",
+      "Step 8: Call POST /api/checks/ocr with a check image that has a clearly readable dollar amount and verify the returned amount_cents correctly converts the dollar value to integer cents (e.g., $3,000.00 \u2192 300000)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Check capture UI \u2014 mobile-first flow for photographing a check, reviewing OCR-extracted fields, linking to a project and milestone, and logging as pending",
+    "steps": [
+      "Step 1: Locate and click the 'Log Check' button (accessible from the project dashboard or the Bank Sync page)",
+      "Step 2: Verify a camera or file-upload input is presented for selecting or photographing a check image",
+      "Step 3: Upload a test check image and verify a loading indicator appears while OCR processes the image",
+      "Step 4: Verify the confirmation form pre-populates with OCR-extracted values: check number, amount, payor name, and memo line",
+      "Step 5: Verify the amount field is displayed as formatted currency (e.g., $3,000.00) not raw cents",
+      "Step 6: Verify all pre-populated fields are editable so the contractor can correct OCR errors before submitting",
+      "Step 7: Select a project from the project dropdown in the form",
+      "Step 8: Select a milestone from the milestone dropdown, which must be filtered to milestones belonging to the selected project",
+      "Step 9: Click 'Log Check' and verify POST /api/checks is called and returns a 201 with status 'pending'",
+      "Step 10: Verify a success confirmation appears and the check is visible in the project's pending check list with status 'Pending'",
+      "Step 11: Attempt to submit without selecting a project or milestone and verify form validation prevents submission with a clear error message",
+      "Step 12: Verify all interactive elements (buttons, dropdowns, inputs) have touch targets of at least 44x44px for mobile usability"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Plaid webhook receiver for transaction sync \u2014 endpoint that handles SYNC_UPDATES_AVAILABLE events and enqueues a background job to pull and persist new transactions",
+    "steps": [
+      "Step 1: Send POST /api/plaid/webhook with body { webhook_type: 'TRANSACTIONS', webhook_code: 'SYNC_UPDATES_AVAILABLE', item_id: '<valid_item_id>' }",
+      "Step 2: Verify the endpoint responds with HTTP 200 immediately, before any sync work completes",
+      "Step 3: Verify the handler enqueues a background BullMQ job to call Plaid's /transactions/sync for the matching bank account",
+      "Step 4: Verify the background job retrieves the contractor's plaid_access_token from the bank_accounts table using the item_id from the webhook payload",
+      "Step 5: Verify the job calls Plaid /transactions/sync using the stored cursor and updates the stored cursor after processing each page of results",
+      "Step 6: Verify new transactions from Plaid's 'added' array are upserted into the bank_transactions table with correct fields (amount, posted_date, check_number, memo, pending flag)",
+      "Step 7: Send POST /api/plaid/webhook with an invalid Plaid-Verification-Header signature and verify the endpoint returns 401 Unauthorized",
+      "Step 8: Send POST /api/plaid/webhook with webhook_code 'DEFAULT_UPDATE' (not SYNC_UPDATES_AVAILABLE) and verify a 200 is returned but no sync job is enqueued",
+      "Step 9: After triggering a valid webhook, call GET /api/transactions?accountId=:bankAccountId and verify newly synced transactions appear in the response"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Tier 1 reconciliation engine \u2014 high-confidence automatic matching of a cleared Plaid transaction to a pending check using check number and exact amount",
+    "steps": [
+      "Step 1: Create a pending_checks record with check_number '1042' and amount_cents 300000 linked to a milestone",
+      "Step 2: Simulate a settled Plaid transaction (pending: false) with check_number '1042' and amount -3000.00 being ingested into bank_transactions",
+      "Step 3: Trigger reconciliation via POST /api/checks/reconcile with the relevant bankAccountId",
+      "Step 4: Verify the pending_checks record status is updated to 'completed'",
+      "Step 5: Verify the plaid_transaction_id is written to the pending_checks record",
+      "Step 6: Verify the linked milestone's status is updated to 'paid'",
+      "Step 7: Verify no match is made when the check_number matches but the amounts differ (e.g., Plaid amount is -2500.00 vs DB amount_cents 300000)",
+      "Step 8: Verify no match is made when the amount matches but the check_number differs (e.g., Plaid check_number '9999' vs DB '1042')",
+      "Step 9: Verify no match is made for a Plaid transaction where pending is true, even if check_number and amount both match",
+      "Step 10: Call GET /api/checks/:checkId after reconciliation and verify status is 'completed' and plaid_transaction_id is populated"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Tier 2 reconciliation engine \u2014 fallback matching by exact amount within a 7-day date window, with automatic needs_review flagging when multiple pending checks ambiguously match",
+    "steps": [
+      "Step 1: Create a pending_checks record with no check_number, amount_cents 300000, created_at = today, linked to a milestone",
+      "Step 2: Simulate a settled Plaid transaction (pending: false) with no check_number, amount -3000.00, and posted_date = today + 2 days (within 7-day window)",
+      "Step 3: Trigger reconciliation and verify the pending_checks record is matched: status updated to 'completed' and plaid_transaction_id written",
+      "Step 4: Verify the linked milestone status is updated to 'paid'",
+      "Step 5: Create a second pending_checks record with the same amount_cents 300000 linked to a different milestone, also with no check_number and created_at = today",
+      "Step 6: Simulate a new settled Plaid transaction with amount -3000.00 and no check_number within the 7-day window",
+      "Step 7: Trigger reconciliation and verify NEITHER pending_checks record is auto-settled",
+      "Step 8: Verify both ambiguous pending_checks records have their status set to 'needs_review'",
+      "Step 9: Create a pending_checks record and a matching Plaid transaction where posted_date is 8 days after created_at (outside the window) and verify no Tier 2 match is made",
+      "Step 10: Verify Tier 2 matching is only attempted when Tier 1 (check_number + amount) finds no match for a given transaction"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Needs-review queue UI and manual check resolution \u2014 interface for surfacing ambiguous pending checks and allowing the contractor to manually confirm the correct match",
+    "steps": [
+      "Step 1: Navigate to the Bank Sync page or a dedicated Reconciliation section and verify a 'Needs Review' tab or filter is visible",
+      "Step 2: Verify the needs-review list shows all pending_checks records with status 'needs_review', including the associated Plaid transaction amount and date",
+      "Step 3: Click a needs_review item to open its detail view",
+      "Step 4: Verify the detail view shows the Plaid transaction details (amount, posted_date, memo) alongside all ambiguous pending_checks candidates",
+      "Step 5: Select one candidate from the list as the correct match",
+      "Step 6: Click 'Confirm Match' and verify PATCH /api/checks/:checkId/resolve is called with { plaidTransactionId, milestoneId }",
+      "Step 7: Verify the resolved pending_checks record status updates to 'completed' and plaid_transaction_id is written",
+      "Step 8: Verify the linked milestone status updates to 'paid'",
+      "Step 9: Verify the other ambiguous pending_checks records remain in 'needs_review' or revert to 'pending' status and are NOT auto-settled",
+      "Step 10: Call GET /api/checks?status=needs_review after resolution and verify the resolved check no longer appears in the list",
+      "Step 11: Call GET /api/transactions/:transactionId/audit-log and verify the manual resolution event is logged with the actor identity and timestamp"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
     "description": "Project Schedule Builder \u2014 phase accordion cards with expand/collapse and full phase CRUD operations",
     "steps": [
       "Step 1: Navigate to the Project & Schedule Builder page",
