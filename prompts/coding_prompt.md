@@ -52,31 +52,29 @@ git checkout main
 git status   # must be clean before branching
 
 # Create and switch to a branch named after the feature you're implementing
-# Use the format: feature/test-N-short-description
-# Example: feature/test-2-project-creation
-git checkout -b feature/test-N-short-description
+# Use the format: feature/short-description
+# Example: feature/project-creation
+git checkout -b feature/N-short-description
 ```
 
 Do not write any code until you are on a feature branch. If `git status`
 shows uncommitted changes on main, commit or stash them first.
 
-**After creating the branch, write a short feature brief in your response:**
+Use the template below to create a description for the Pull Request:
 
-## Description
+```
+Description
 Describe what the feature does from the user's
 perspective and why it matters in the context of the app. Name the key UI
 surfaces and API endpoints that will be touched.
 
-## Scope and approach
+Scope and approach
 Describe what you will build this session
 (backend changes, frontend changes, any new entities or routes), and what you
 are explicitly leaving out. Call out any ambiguities or assumptions.
 
-**Then list the manual test steps you will walk through to verify it:**
-**Be sure to include prerequisite steps to stand up the app and any additional set up as required to test:**
 
-```
-## Manual verification checklist:
+Manual verification checklist:
 [ ] Step 1: <concrete UI action or API call>
 [ ] Step 2: <expected result to confirm>
 ...
@@ -84,7 +82,7 @@ are explicitly leaving out. Call out any ambiguities or assumptions.
 ```
 
 This checklist must map 1-to-1 with the steps in `feature_list.json` for the
-target test. Do not start coding until this brief is written.
+target feature. Do not start coding until this brief is written.
 
 ---
 
@@ -315,12 +313,12 @@ feature_list.json: test #N marked passing
 "
 
 # Push the feature branch
-git push -u origin feature/test-N-short-description
+git push -u origin feature/feature-N-short-description
 
 # Open a pull request into main
 gh pr create \
-  --title "feat: [feature name] (test #N)" \
-  --body "Implements test #N from feature_list.json. All steps verified via browser automation. Screenshots in verification/."
+  --title "feat: [feature name]" \
+  --body "Implements feature #N from feature_list.json. All steps verified via browser automation. Screenshots in verification/."
 ```
 
 Do not merge the PR yourself. Leave it open for review.
@@ -331,7 +329,7 @@ Do not merge the PR yourself. Leave it open for review.
 
 Update `claude-progress.txt`:
 
-- Which test you completed (number + description)
+- Which feature you completed (number + description)
 - The feature branch name and PR link
 - Any regressions found and fixed
 - What the next session should work on (the next `"passes": false` test)
