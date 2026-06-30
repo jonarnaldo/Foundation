@@ -84,6 +84,33 @@
       - Historical reconciliation audit trail logging matching history, user confirmations, and ledger adjustments
     </bank_sync_transaction_matcher>
 
+    <automated_check_reconciliation>
+      Bridges the gap between a physical check deposit and a project milestone by combining
+      mobile OCR capture with automated Plaid transaction matching.
+
+      Workflow:
+      1. Contractor photographs a physical check on mobile; Veryfi Lens OCR extracts
+         check_number, amount, payor_name, and memo_line.
+      2. Extracted data is confirmed in a form where the contractor links the check to a
+         project and milestone; a pending_checks record is created with status "pending".
+      3. Plaid fires a SYNC_UPDATES_AVAILABLE webhook; the backend calls /transactions/sync
+         and iterates the "added" array for settled deposits (pending: false).
+      4. A two-tier matching engine runs against pending_checks:
+         - Tier 1 (high confidence): Plaid check_number equals DB check_number AND amounts match.
+         - Tier 2 (fallback): Exact amount match where Plaid posted_date falls within a
+           rolling 7-day window of the pending_checks created_at.
+      5. On a unique Tier 1 or Tier 2 match: atomically set pending_checks.status →
+         "completed", write plaid_transaction_id, set milestones.status → "paid", and
+         fire an async user notification.
+      6. On a Tier 2 multi-match (ambiguous): set status → "needs_review" and surface
+         the check in a manual resolution queue in the UI.
+
+      Key rules:
+      - Plaid represents inflows as negative values; matching negates accordingly.
+      - A Plaid transaction with pending: true is never used for auto-settlement.
+      - Multi-match ambiguity always blocks auto-settlement to prevent incorrect ledger entries.
+    </automated_check_reconciliation>
+
     <accessibility>
       - Full keyboard navigation
       - Screen reader support
@@ -304,6 +331,21 @@
       - notes
       - created_at
     </reconciliation_audit_log>
+
+    <pending_checks>
+      - id (uuid)
+      - project_id (FK → projects)
+      - milestone_id (FK → milestones)
+      - check_number (string, nullable — may be absent if bank omits it)
+      - amount_cents (integer — stored in minor units to avoid floating-point errors)
+      - payor_name (string — extracted by OCR)
+      - memo_line (string, nullable — extracted by OCR)
+      - status (enum: pending, completed, needs_review)
+      - plaid_transaction_id (string, nullable — written on successful match for audit)
+      - ocr_raw_response (JSON, nullable — full Veryfi response, stored for debugging)
+      - created_by (FK → users)
+      - created_at, updated_at
+    </pending_checks>
     </tables>
   </database_schema>
 
@@ -491,6 +533,47 @@
       - GET    /api/settings
       - PUT    /api/settings
     </settings>
+
+    <automated_check_reconciliation>
+
+      <check_ocr>
+        - POST   /api/checks/ocr
+                  — Accepts a multipart check image; proxies to Veryfi Lens OCR and returns
+                    normalized extracted fields: check_number, amount_cents, payor_name, memo_line.
+                    Raw Veryfi response is stored server-side only; never forwarded to the client.
+      </check_ocr>
+
+      <pending_checks>
+        - POST   /api/checks
+                  — Creates a pending_checks record linking the OCR-extracted data to a
+                    project and milestone. Body: { projectId, milestoneId, checkNumber,
+                    amountCents, payorName, memoLine }. Returns the new record with status "pending".
+        - GET    /api/checks?projectId=&status=
+                  — Lists pending checks for a project, filterable by status
+                    (pending | completed | needs_review).
+        - GET    /api/checks/:checkId
+                  — Returns full pending_check detail including linked project and milestone.
+        - PATCH  /api/checks/:checkId
+                  — Updates editable fields (memo_line, milestone_id, etc.) before the check clears.
+        - DELETE /api/checks/:checkId
+                  — Soft-deletes a pending check that was logged in error.
+      </pending_checks>
+
+      <reconciliation_control>
+        - POST   /api/checks/reconcile
+                  — Manually triggers the matching engine for a specific bank account; useful
+                    for testing outside the Plaid webhook flow.
+                    Body: { bankAccountId }
+        - GET    /api/checks/needs-review
+                  — Returns all pending_checks records with status "needs_review" across the
+                    authenticated contractor's projects; used to populate the manual resolution queue.
+        - PATCH  /api/checks/:checkId/resolve
+                  — Manually resolves a needs_review check by selecting the correct Plaid
+                    transaction. Body: { plaidTransactionId, milestoneId }. Triggers the same
+                    atomic state transition as an auto-match success.
+      </reconciliation_control>
+
+    </automated_check_reconciliation>
   </api_endpoints_summary>
 
 
