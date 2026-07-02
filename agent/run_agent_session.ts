@@ -129,9 +129,8 @@ function preflight(): void {
     fail("git user.email is not configured (git config user.email '...').");
   }
 
-  // 7. ANTHROPIC_API_KEY (or another supported auth method) is present
-  if (!process.env.ANTHROPIC_API_KEY && !process.env.CLAUDE_CODE_OAUTH_TOKEN) {
-    fail("Neither ANTHROPIC_API_KEY nor CLAUDE_CODE_OAUTH_TOKEN is set.");
+  if (!process.env.CLAUDE_CODE_OAUTH_TOKEN) {
+    fail("CLAUDE_CODE_OAUTH_TOKEN is set.");
   }
 
   console.log("All preflight checks passed.");
@@ -158,7 +157,6 @@ async function main(): Promise<void> {
       cwd: PROJECT_DIR,
       model: MODEL,
       maxTurns: MAX_TURNS,
-      maxBudgetUsd: MAX_BUDGET_USD,
       effort: EFFORT,
 
       // Explicit, not relying on either documented default — see note above.
@@ -283,7 +281,7 @@ async function main(): Promise<void> {
 
   console.log("== Session summary ==");
   if (finalResult) {
-    console.log(`Cost:    $${finalResult.total_cost_usd} (budget cap was $${MAX_BUDGET_USD})`);
+    console.log(`Cost:    $${finalResult.total_cost_usd}`);
     console.log(`Turns:   ${finalResult.num_turns} (max was ${MAX_TURNS})`);
     console.log(`Status:  ${finalResult.subtype} (is_error: ${finalResult.is_error})`);
     console.log(`Stopped: ${finalResult.stop_reason ?? "n/a"}`);
