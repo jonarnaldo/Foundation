@@ -1,6 +1,6 @@
 {
   "name": "Claude Code Environment",
-  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "build": { "dockerfile": "Dockerfile" },
   "features": {
     "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers/features/github-cli:1": {},
@@ -20,8 +20,12 @@
   ],
   "remoteUser": "vscode",
   "remoteEnv": {
-     "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}"
+     "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}",
+     "GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}"
    },
   "postCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.claude",
-  "runArgs": ["--name", "foundation-core"]
+  "runArgs": ["--name", "foundation-core"],
+  "capAdd": ["NET_ADMIN", "NET_RAW"],
+  "postStartCommand": "sudo -E bash ${containerWorkspaceFolder}/.devcontainer/init-firewall.sh",
+  "waitFor": "postStartCommand"
 }
