@@ -2,11 +2,11 @@
 
 ## Read This First
 
-Full coding instructions are in `prompts/coding_prompt.md`. Read that file
-before doing anything else in this repo.
+Full coding instructions are in `agent/prompts/coding_prompt.md`. Read that
+file before doing anything else in this repo.
 
 ```bash
-cat prompts/coding_prompt.md
+cat agent/prompts/coding_prompt.md
 ```
 
 ## One-Line Summary of the Rules
