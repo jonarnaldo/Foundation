@@ -1,5 +1,65 @@
 
 ================================================================================
+SESSION 8 COMPLETE — Foundation Construction Finance Platform
+Date: 2026-07-02
+================================================================================
+
+## TEST #4 — pending_checks database schema and CRUD API ✅ PASSING (5/28)
+
+### Branch
+feature/pending-checks-schema (pushed, PR creation blocked by PAT permissions)
+
+### What was implemented
+
+1. **PendingCheck entity** (`server/src/database/entities/pending-check.entity.ts`) — NEW
+   - Columns: id (uuid PK), projectId (FK→projects), milestoneId (FK→milestones),
+     checkNumber (nullable), amountCents (bigint), payorName, memoLine (nullable),
+     status enum (pending/completed/needs_review), plaidTransactionId (nullable),
+     createdBy (userId string), createdAt, updatedAt
+   - CASCADE deletes from projects and milestones
+
+2. **ChecksService** (`server/src/checks/checks.service.ts`) — NEW
+   - create(): validates amountCents >= 0 (400), validates milestoneId exists (404),
+     handles invalid UUID format gracefully (also 404)
+   - findAll(): filters by projectId, optional status filter
+   - findOne(): throws 404 if not found
+   - update(): partial update, returns updated record
+   - remove(): hard delete, returns {deleted:true, id}
+
+3. **ChecksController** (`server/src/checks/checks.controller.ts`) — NEW
+   - POST /api/checks → 201
+   - GET /api/checks?projectId=&status= → array
+   - GET /api/checks/:id → single record
+   - PATCH /api/checks/:id → updated record
+   - DELETE /api/checks/:id → {deleted:true}
+
+4. **ChecksModule** (`server/src/checks/checks.module.ts`) — NEW
+   - Registered in AppModule
+
+### Tests added
+- server/src/checks/checks.service.spec.ts (9 tests — all passing)
+
+### All 9 steps verified
+- Step 1: Table schema confirmed (psql \d pending_checks)
+- Step 2: POST returns 201 + status=pending
+- Step 3: GET list returns new record
+- Step 4: GET /:id returns projectId and milestoneId
+- Step 5: PATCH updates memoLine
+- Step 6: DELETE returns {deleted:true}, GET returns 404
+- Step 7: Non-existent milestoneId → 404
+- Step 8: Negative amountCents → 400
+- Step 9: ?status=pending filter works correctly
+
+### Database note
+DATABASE_URL updated to use 172.17.0.1:5432 (Docker bridge gateway) instead of
+172.20.0.2:5432 (direct Postgres container IP unreachable from dev container).
+
+### Next session
+Implement test [5]: Veryfi OCR API integration
+Branch name: feature/veryfi-ocr-integration
+Requires: Backend endpoint accepting check image, calling Veryfi API, returning normalized fields
+
+================================================================================
 SESSION 7 COMPLETE — Foundation Construction Finance Platform
 Date: 2026-06-30
 ================================================================================

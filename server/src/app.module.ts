@@ -8,6 +8,7 @@ import { QuickBooksModule } from './quickbooks/quickbooks.module'
 import { AuthModule } from './auth/auth.module'
 import { SearchModule } from './search/search.module'
 import { SettingsModule } from './settings/settings.module'
+import { ChecksModule } from './checks/checks.module'
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { SettingsModule } from './settings/settings.module'
     QuickBooksModule,
     SearchModule,
     SettingsModule,
+    ChecksModule,
   ],
 })
 export class AppModule {}
