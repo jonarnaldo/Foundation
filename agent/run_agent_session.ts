@@ -22,12 +22,14 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { SDKMessage, SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 // ---- Configuration ---------------------------------------------------------
 
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const PROJECT_DIR = process.env.PROJECT_DIR ?? process.cwd();
-const PROMPT_FILE = process.env.PROMPT_FILE ?? "./prompts/coding_prompt.md";
+const PROMPT_FILE = process.env.PROMPT_FILE ?? join(SCRIPT_DIR, "prompts/coding_prompt.md");
 const RESULT_DIR = process.env.RESULT_DIR ?? "./session-results";
 const MODEL = process.env.MODEL ?? "claude-sonnet-4-6"; // use a literal model ID, not an alias
 const MAX_TURNS = Number(process.env.MAX_TURNS ?? 100);
