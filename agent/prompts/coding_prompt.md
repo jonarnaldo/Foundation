@@ -60,27 +60,6 @@ git checkout -b feature/N-short-description
 Do not write any code until you are on a feature branch. If `git status`
 shows uncommitted changes on main, commit or stash them first.
 
-Use the template below to create a description for the Pull Request:
-
-```
-Description
-Describe what the feature does from the user's
-perspective and why it matters in the context of the app. Name the key UI
-surfaces and API endpoints that will be touched.
-
-Scope and approach
-Describe what you will build this session
-(backend changes, frontend changes, any new entities or routes), and what you
-are explicitly leaving out. Call out any ambiguities or assumptions.
-
-
-Manual verification checklist:
-[ ] Step 1: <concrete UI action or API call>
-[ ] Step 2: <expected result to confirm>
-...
-[ ] Step N: <final state that proves the feature is complete>
-```
-
 This checklist must map 1-to-1 with the steps in `feature_list.json` for the
 target feature. Do not start coding until this brief is written.
 
@@ -331,11 +310,38 @@ feature_list.json: test #N marked passing
 # Push the feature branch
 git push -u origin feature/feature-N-short-description
 
+# Create a PR description
+
+
 # Open a pull request into main
+# be sure to follow this template for the body:
+
+Use the template below to create a description for the Pull Request:
+
+```
+Description
+Describe what the feature does from the user's
+perspective and why it matters in the context of the app. Name the key UI
+surfaces and API endpoints that will be touched.
+
+Scope and approach
+Describe what you will build this session
+(backend changes, frontend changes, any new entities or routes), and what you
+are explicitly leaving out. Call out any ambiguities or assumptions.
+
+
+Manual verification checklist:
+[ ] Step 1: <concrete UI action or API call>
+[ ] Step 2: <expected result to confirm>
+...
+[ ] Step N: <final state that proves the feature is complete>
+```
+
 gh pr create \
   --title "feat: [feature name]" \
-  --body "Implements feature #N from feature_list.json. All steps verified via browser automation. Screenshots in verification/."
+  --body "[PR body template here]"
 ```
+
 
 Do not merge the PR yourself. Leave it open for review.
 
