@@ -38,7 +38,7 @@ const MAX_BUDGET_USD = Number(process.env.MAX_BUDGET_USD ?? 5);
 // 'xhigh' | 'max'. `maxThinkingTokens` exists but is @deprecated in favor
 // of `effort` / `thinking`, so we use `effort` here, matching the CLI
 // script's --effort flag.
-const EFFORT = (process.env.EFFORT ?? "high") as
+const EFFORT = (process.env.EFFORT ?? "medium") as
   | "low"
   | "medium"
   | "high"
