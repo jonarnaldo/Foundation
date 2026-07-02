@@ -15,5 +15,13 @@
       "extensions": ["ms-vscode.azurecli"]
     }
   },
-  "remoteUser": "vscode"
+  "mounts": [
+  "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume"
+  ],
+  "remoteUser": "vscode",
+  "remoteEnv": {
+     "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}"
+   },
+  "postCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.claude",
+  "runArgs": ["--name", "foundation-core"]
 }
