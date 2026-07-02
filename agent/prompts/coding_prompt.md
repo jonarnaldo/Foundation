@@ -106,10 +106,20 @@ git log --oneline -10
 
 ### STEP 3: START SERVERS
 
-If `init.sh` exists, run it:
+If `init.sh` exists, run it. **It never returns on its own** (it ends by
+waiting on the server processes so a human can Ctrl+C it) — run it detached
+in the background, then poll until both servers respond:
 
 ```bash
-chmod +x init.sh && ./init.sh
+chmod +x init.sh
+nohup ./init.sh > /tmp/init.log 2>&1 &
+disown
+
+# Poll until both servers are up (check /tmp/init.log if this doesn't
+# succeed within a couple minutes)
+until curl -sf http://localhost:5173 >/dev/null && curl -sf http://localhost:3001/api/docs >/dev/null; do
+  sleep 3
+done
 ```
 
 **Then take a screenshot of the running app before touching any code.**
