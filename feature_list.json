@@ -85,7 +85,7 @@
       "Step 7: Confirm via code review that the Veryfi API key is loaded from an environment variable and is not hardcoded in source",
       "Step 8: Call POST /api/checks/ocr with a check image that has a clearly readable dollar amount and verify the returned amount_cents correctly converts the dollar value to integer cents (e.g., $3,000.00 → 300000)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

@@ -1,16 +1,29 @@
 import {
   Controller, Get, Post, Patch, Delete, Body, Param, Query, Req, UseGuards, HttpCode,
+  UseInterceptors, UploadedFile,
 } from '@nestjs/common'
+import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { ChecksService } from './checks.service'
+import { OcrService } from './ocr.service'
 
 @ApiTags('checks')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('checks')
 export class ChecksController {
-  constructor(private readonly svc: ChecksService) {}
+  constructor(
+    private readonly svc: ChecksService,
+    private readonly ocr: OcrService,
+  ) {}
+
+  @Post('ocr')
+  @HttpCode(200)
+  @UseInterceptors(FileInterceptor('image', { storage: undefined }))
+  extractCheckOcr(@UploadedFile() file: Express.Multer.File) {
+    return this.ocr.extractCheckFields(file)
+  }
 
   @Post()
   @HttpCode(201)
